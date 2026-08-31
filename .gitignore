@@ -1,0 +1,22 @@
+node_modules
+dist
+*.local
+.DS_Store
+npm-debug.log*
+*.log
+
+# 词汇源文件（构建用，运行时不需要）
+_vocab_src/
+_upload/
+cet_import.txt
+high_freq_import.txt
+四级词汇库.txt
+六级词汇库.txt
+
+# 构建脚本
+build_vocab.cjs
+merge_vocab.cjs
+
+# 测试文件
+public/test-paper.pdf
+public/imported_vocab.old_2008.json

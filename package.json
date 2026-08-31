@@ -1,0 +1,22 @@
+{
+  "name": "lingua-lab",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "latest",
+    "epubjs": "^0.3.93",
+    "lucide-react": "latest",
+    "pdfjs-dist": "^5.6.205",
+    "react": "latest",
+    "react-dom": "latest",
+    "tesseract.js": "^7.0.0",
+    "typescript": "latest",
+    "vite": "latest"
+  }
+}
