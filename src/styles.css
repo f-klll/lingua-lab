@@ -2039,3 +2039,14 @@ body { background: #fdf1f3; }
   .login-modal-card { padding: 32px 24px 24px; }
   .login-title { font-size: 20px; }
 }
+
+/* 扫码打开手机端 */
+.qr-open { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 10px; background: var(--glass); color: var(--soft-ink); cursor: pointer; transition: .18s; }
+.qr-open:hover { color: var(--pink-dark); border-color: var(--pink-dark); background: #ecfeff; }
+.qr-modal { width: min(360px, 100%); text-align: center; }
+.qr-frame { display: grid; place-items: center; margin: 6px auto 14px; padding: 14px; width: max-content; max-width: 100%; background: #fff; border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 10px 26px rgba(60, 40, 50, .08); }
+.qr-frame img { width: 224px; height: 224px; image-rendering: pixelated; display: block; }
+.qr-error { color: #b45454; font-size: 13px; padding: 20px; }
+.qr-hint { color: var(--soft-ink); font-size: 13px; margin: 0 0 8px; }
+.qr-url { color: var(--soft-ink); opacity: .7; font-size: 11px; word-break: break-all; margin: 0; font-family: 'DM Mono', ui-monospace, monospace; }
+@media (max-width: 650px) { .top-actions .qr-open { display: none; } }

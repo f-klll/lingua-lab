@@ -4,8 +4,9 @@ import { createPortal } from 'react-dom'
 import {
   ArrowUpRight, BookOpen, Brain, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Clock3, MessageSquare, Heart,
   Download, FileImage, Flame, Headphones, Highlighter, Library, Lightbulb, Link2, Menu, Merge, Minus, Play, Plus, Search,
-  Settings2, Sparkles, Trash2, Upload, Volume2, X, Zap, Trophy, BarChart3, LogOut, User, Target, Award, TrendingUp, Medal, Crown, Star, Rocket, BookMarked, XCircle, CheckCircle, Languages, ScanText, ZoomIn, RotateCcw, Info, GraduationCap, Repeat, ShieldCheck
+  Settings2, Sparkles, Trash2, Upload, Volume2, X, Zap, Trophy, BarChart3, LogOut, User, Target, Award, TrendingUp, Medal, Crown, Star, Rocket, BookMarked, XCircle, CheckCircle, Languages, ScanText, ZoomIn, RotateCcw, Info, GraduationCap, Repeat, ShieldCheck, QrCode
 } from 'lucide-react'
+import qrcode from 'qrcode-generator'
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist'
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import ePub from 'epubjs'
@@ -1339,6 +1340,7 @@ function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
+  const [showQr, setShowQr] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     try { return !!localStorage.getItem('ll_current_user') } catch (e) { return false }
   })
@@ -1675,12 +1677,13 @@ function App() {
       <div className="sidebar-bottom"><div className="streak"><Flame size={getFlameProps(flameState.streak).size} color={getFlameProps(flameState.streak).color} className={getFlameProps(flameState.streak).burnClass} fill={getFlameProps(flameState.streak).color} style={{filter: getFlameProps(flameState.streak).glow !== 'none' ? `drop-shadow(${getFlameProps(flameState.streak).glow})` : 'none'}} /><div><strong>连续 {flameState.streak} 天</strong><small>{flameState.isBroken ? `⚠ 中断中，今日需记 ${flameState.wordsNeededToday} 词续火` : flameState.streak >= 15 ? '燃烧正旺！' : flameState.streak >= 7 ? '火焰跳动中' : '保持你的节奏'}</small></div><Zap size={15} /></div><button className="settings" onClick={() => setShowSettings(true)}><Settings2 size={18} /> 学习设置</button></div>
     </aside>
     <main className="main-area">
-      <header className="topbar"><button className="mobile-menu" onClick={() => setMobileNav(!mobileNav)}><Menu size={21} /></button><div className="breadcrumb">{navItems.find((item) => item.id === active)?.label}<span>/</span><em>{active === 'today' ? '今天，开始一小步' : '把理解变成直觉'}</em></div><div className="top-actions"><button className="icon-button" onClick={() => setShowHelp(true)}><CircleHelp size={18} /></button><div className="daily-chip"><span></span> 今日目标 <strong>{todayGoalPct}%</strong></div></div></header>
+      <header className="topbar"><button className="mobile-menu" onClick={() => setMobileNav(!mobileNav)}><Menu size={21} /></button><div className="breadcrumb">{navItems.find((item) => item.id === active)?.label}<span>/</span><em>{active === 'today' ? '今天，开始一小步' : '把理解变成直觉'}</em></div><div className="top-actions"><button className="icon-button" onClick={() => setShowHelp(true)}><CircleHelp size={18} /></button><button className="qr-open" onClick={() => setShowQr(true)} title="扫码在手机上打开"><QrCode size={18} /></button><div className="daily-chip"><span></span> 今日目标 <strong>{todayGoalPct}%</strong></div></div></header>
       <div className="page-content">{renderPage()}</div>
     </main>
     {toast && <div className="toast"><Check size={16} /> {toast}</div>}
     {showSettings && <SettingsModal flameState={flameState} setFlameState={setFlameState} onClose={() => setShowSettings(false)} />}
     {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+    {showQr && <QrModal onClose={() => setShowQr(false)} />}
     {showLogin && <LoginModal onLogin={handleLoginSuccess} onClose={() => setShowLogin(false)} />}
   </div>
 }
@@ -1770,6 +1773,29 @@ function HelpModal({ onClose }) {
     <div className="import-modal-head"><span className="type-label orange">LINGUA LAB · 使用指南</span><button className="close-button" onClick={onClose}><X size={16} /></button></div>
     <div className="help-grid">{features.map((f, i) => { const Icon = f.icon; return <div className="help-card" key={i}><Icon size={17} /><div><strong>{f.title}</strong><p>{f.desc}</p></div></div> })}</div>
     <div className="help-tip"><Languages size={16} /><span>任何页面点一下英文单词，都会弹出音标、释义、词根和例句；点喇叭可听发音。</span></div>
+  </div></div>
+}
+
+function QrModal({ onClose }) {
+  const { qrData, shareUrl } = useMemo(() => {
+    const url = window.location.hostname.endsWith('.pages.dev') ? window.location.href : 'https://lingua-lab-zll.pages.dev/'
+    try {
+      const qr = qrcode(0, 'M')
+      qr.addData(url)
+      qr.make()
+      return { qrData: qr.createDataURL(8, 2), shareUrl: url }
+    } catch (e) { return { qrData: '', shareUrl: url } }
+  }, [])
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+  return <div className="import-overlay" onClick={onClose}><div className="import-modal qr-modal" onClick={(e) => e.stopPropagation()}>
+    <div className="import-modal-head"><span className="type-label orange">SCAN · 手机打开</span><button className="close-button" onClick={onClose}><X size={16} /></button></div>
+    <div className="qr-frame">{qrData ? <img src={qrData} alt="Lingua Lab 二维码" /> : <span className="qr-error">二维码生成失败</span>}</div>
+    <p className="qr-hint">用手机微信扫一扫，在手机上继续学习</p>
+    <p className="qr-url">{shareUrl}</p>
   </div></div>
 }
 
