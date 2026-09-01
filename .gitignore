@@ -20,3 +20,8 @@ merge_vocab.cjs
 # 测试文件
 public/test-paper.pdf
 public/imported_vocab.old_2008.json
+
+# 临时调试文件
+_edit_*.cjs
+_screenshot*.png
+err_screenshot.png
