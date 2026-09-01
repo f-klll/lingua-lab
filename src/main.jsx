@@ -928,6 +928,7 @@ function WelcomePage({ onEnter }) {
         <div className="welcome-grid" />
       </div>
       <div className="welcome-hero-inner">
+        <div className="welcome-hero-copy">
         <div className="welcome-brand">
           <div className="welcome-brand-mark"><span></span><span></span><span></span></div>
           <span className="welcome-brand-name">lingua<span>.</span>lab</span>
@@ -950,6 +951,8 @@ function WelcomePage({ onEnter }) {
           <span>向下滚动了解更多</span>
           <div className="welcome-scroll-line" />
         </div>
+        </div>
+        <WelcomeQrCard variant="hero" />
       </div>
     </section>
 
@@ -988,6 +991,7 @@ function WelcomePage({ onEnter }) {
         <button className="welcome-enter-btn welcome-enter-bottom" onClick={onEnter}>
           开始学习 <ArrowUpRight size={18} />
         </button>
+        <WelcomeQrCard variant="dark" />
       </div>
     </section>
 
@@ -1797,6 +1801,25 @@ function QrModal({ onClose }) {
     <p className="qr-hint">用手机微信扫一扫，在手机上继续学习</p>
     <p className="qr-url">{shareUrl}</p>
   </div></div>
+}
+
+function WelcomeQrCard({ variant = 'hero' }) {
+  const { qrData, shareUrl } = useMemo(() => {
+    const url = window.location.hostname.endsWith('.pages.dev') ? `${window.location.origin}/` : 'https://lingua-lab-zll.pages.dev/'
+    try {
+      const qr = qrcode(0, 'M')
+      qr.addData(url)
+      qr.make()
+      return { qrData: qr.createDataURL(6, 2), shareUrl: url.replace(/^https?:\/\//, '').replace(/\/$/, '') }
+    } catch (e) { return { qrData: '', shareUrl: url } }
+  }, [])
+  return <div className={`welcome-qr-card${variant === 'dark' ? ' welcome-qr-dark' : ''}`}>
+    {qrData ? <img src={qrData} alt="Lingua Lab 二维码" /> : <span className="welcome-qr-error">二维码生成失败</span>}
+    <div className="welcome-qr-text">
+      <strong>手机扫一扫 · 随时随地学</strong>
+      <span>{shareUrl}</span>
+    </div>
+  </div>
 }
 
 function DashboardPage({ saved, memoryLevels, rootMemoryLevels, importedVocab, readingSeconds, articlesRead, dailyStats, todayKey, yesterdayKey, flameState, todayWords, todayMetThreshold, setActive, setToast, isLoggedIn, currentUser, currentUserName, onLogout, onShowLogin }) {
