@@ -1785,7 +1785,8 @@ function HelpModal({ onClose }) {
 
 function QrModal({ onClose }) {
   const { qrData, shareUrl } = useMemo(() => {
-    const url = window.location.hostname.endsWith('.pages.dev') ? window.location.href : 'https://lingua-lab-zll.pages.dev/'
+    // 固定编码正式地址（与对联站 shareUrl 做法一致），避免把查询参数带进二维码
+    const url = 'https://lingua-lab-zll.pages.dev/'
     try {
       const qr = qrcode(0, 'M')
       qr.addData(url)
