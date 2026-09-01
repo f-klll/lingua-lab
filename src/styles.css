@@ -1432,7 +1432,7 @@ body { background: #fdf1f3; }
 
 /* Hero 区次要按钮行（使用反馈 / 赞赏） */
 .welcome-secondary-actions {
-  display: flex; align-items: center; gap: 12px;
+  display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 12px;
   margin-bottom: 4px;
 }
 .welcome-mini-btn {
@@ -2051,43 +2051,23 @@ body { background: #fdf1f3; }
 .qr-url { color: var(--soft-ink); opacity: .7; font-size: 11px; word-break: break-all; margin: 0; font-family: 'DM Mono', ui-monospace, monospace; }
 @media (max-width: 650px) { .top-actions .qr-open { display: none; } }
 
-/* ===== 欢迎页二维码卡片 ===== */
-.welcome-qr-card {
+/* ===== 欢迎页扫码按钮 ===== */
+.welcome-qr-open-btn {
   position: relative; z-index: 1;
-  display: inline-flex; flex-direction: column; align-items: center; gap: 14px;
-  padding: 22px 26px 18px;
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(190, 110, 125, 0.22);
-  border-radius: 18px;
-  box-shadow: 0 20px 50px rgba(180, 120, 140, 0.16);
-  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  flex-shrink: 0;
-}
-.welcome-qr-card img { width: 148px; height: 148px; display: block; border-radius: 10px; background: #fff; }
-.welcome-qr-text { display: flex; flex-direction: column; gap: 3px; text-align: center; }
-.welcome-qr-text strong { font-size: 13.5px; font-weight: 700; color: #43343b; letter-spacing: 0.02em; }
-.welcome-qr-text span { font-size: 11px; color: #a38d99; letter-spacing: 0.02em; }
-.welcome-qr-error { font-size: 12px; color: #c46888; }
-
-/* Hero 双栏：文字在左，二维码在右 */
-.welcome-hero-inner { display: flex; align-items: center; justify-content: center; gap: 64px; max-width: 1080px; }
-.welcome-hero-copy { width: 100%; max-width: 720px; text-align: center; }
-
-/* 欢迎页末尾暗色区版本 */
-.welcome-qr-dark {
-  margin-top: 44px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  margin-top: 20px; padding: 14px 36px; border-radius: 14px;
   background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.16);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #fff; font-size: 15px; font-weight: 600; letter-spacing: 0.02em;
+  cursor: pointer; transition: all .3s;
 }
-.welcome-qr-dark img { padding: 10px; background: #fff; border-radius: 12px; }
-.welcome-qr-dark .welcome-qr-text strong { color: #fff; }
-.welcome-qr-dark .welcome-qr-text span { color: #8fa5b0; }
-
-@media (max-width: 900px) {
-  .welcome-hero-inner { flex-direction: column; gap: 44px; }
+.welcome-qr-open-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
 }
+.welcome-qr-open-btn:active { transform: translateY(0); }
 @media (max-width: 600px) {
-  .welcome-qr-card { padding: 18px 22px 14px; }
-  .welcome-qr-card img { width: 124px; height: 124px; }
+  .welcome-qr-open-btn { padding: 12px 26px; font-size: 14px; width: 100%; max-width: 320px; }
 }
