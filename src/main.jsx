@@ -991,7 +991,7 @@ function WelcomePage({ onEnter }) {
           开始学习 <ArrowUpRight size={18} />
         </button>
         <button className="welcome-qr-open-btn" onClick={() => setShowQr(true)}>
-          <QrCode size={18} /> 手机扫码 · 随时随地学
+          <QrCode size={16} /> 手机扫码 · 随时随地学
         </button>
       </div>
     </section>
