@@ -1,0 +1,1 @@
+{"name": "Lingua Lab \u00b7 英语学习实验室", "short_name": "Lingua Lab", "description": "背单词、练词根、读文章，一站式的英语学习实验室", "lang": "zh-CN", "start_url": "/", "display": "standalone", "background_color": "#fdf1f3", "theme_color": "#c46888", "icons": [{"src": "/icon-192.png", "sizes": "192x192", "type": "image/png"}, {"src": "/icon-512.png", "sizes": "512x512", "type": "image/png"}]}
