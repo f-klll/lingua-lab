@@ -2070,3 +2070,290 @@ body { background: #fdf1f3; }
   transform: translateY(-1px);
 }
 .welcome-qr-open-btn:active { transform: translateY(0); }
+
+/* ============================================================
+   ===== UI 优化增强 — 参考 UIverse 设计趋势 =====
+   渐变按钮 / 微交互 / 卡片提升 / 平滑过渡 / 光泽扫过
+   ============================================================ */
+
+/* --- 全局过渡增强：所有可交互元素统一平滑动画 --- */
+.nav-item, .primary, .save-button, .review-cta button,
+.word-card, .show-card, .icon-button, .daily-chip,
+.method-strip, .queue-item, .root-tags button, .show-filter span,
+.library-toolbar label, .profile-login-btn, .track-card,
+.vocab-stats > div, .stat-block, .metric-card {
+  transition: all .28s cubic-bezier(.4, 0, .2, 1);
+}
+
+/* --- 主按钮：光泽扫过 + 深度阴影 + 按压反馈 --- */
+.primary, .save-button, .review-cta button {
+  position: relative;
+  overflow: hidden;
+}
+.primary::before, .save-button::before, .review-cta button::before {
+  content: '';
+  position: absolute; top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.25), transparent);
+  transition: left .5s ease;
+}
+.primary:hover::before, .save-button:hover::before, .review-cta button:hover::before {
+  left: 100%;
+}
+.primary:hover, .save-button:hover, .review-cta button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgba(55,130,139,.28), 0 4px 10px rgba(55,130,139,.12);
+}
+.primary:active, .save-button:active, .review-cta button:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(55,130,139,.2);
+  transition-duration: .1s;
+}
+
+/* --- 卡片悬停：提升 + 阴影加深 + 边框发光 --- */
+.word-card:hover, .show-card:hover, .track-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 40px rgba(56,100,105,.12), 0 4px 12px rgba(56,100,105,.06);
+  border-color: rgba(77,156,163,.45);
+}
+.daily-queue:hover, .vocab-stats:hover, .root-feature:hover, .reading-layout:hover {
+  box-shadow: 0 20px 45px rgba(56,100,105,.1), 0 4px 14px rgba(56,100,105,.05);
+}
+
+/* --- 导航项：滑动指示器 + 背景扩散 --- */
+.nav-item {
+  position: relative;
+  overflow: hidden;
+}
+.nav-item::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgba(77,156,163,.12), transparent);
+  opacity: 0;
+  transition: opacity .25s ease;
+  pointer-events: none;
+}
+.nav-item:hover::before { opacity: 1; }
+.nav-item:hover {
+  transform: translateX(2px);
+}
+.nav-item.active::before {
+  opacity: .35;
+}
+
+/* --- 图标按钮：旋转 + 背景加深 --- */
+.icon-button:hover, .qr-open:hover {
+  transform: translateY(-1px) scale(1.05);
+  box-shadow: 0 6px 16px rgba(56,100,105,.12);
+}
+.icon-button:active, .qr-open:active {
+  transform: scale(.96);
+}
+
+/* --- 进度条：平滑增长动画 --- */
+.progress-line span {
+  transition: width .8s cubic-bezier(.4, 0, .2, 1);
+}
+
+/* --- 统计数字：渐入 + 上浮 --- */
+.vocab-stats strong, .stat-block strong, .metric-value,
+.dashboard-stat-number, .stat-number {
+  display: inline-block;
+  animation: statRise .6s cubic-bezier(.4, 0, .2, 1) both;
+}
+@keyframes statRise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* --- 标签/筛选按钮：按下缩放 --- */
+.show-filter span, .root-tags button, .show-filter button {
+  transition: all .2s cubic-bezier(.4, 0, .2, 1);
+}
+.show-filter span:hover, .root-tags button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(56,100,105,.1);
+}
+.show-filter span:active, .root-tags button:active {
+  transform: scale(.95);
+}
+
+/* --- 队列项 hover --- */
+.queue-item:hover {
+  background: rgba(77,156,163,.04);
+  padding-left: 6px;
+}
+.queue-item:active {
+  background: rgba(77,156,163,.08);
+}
+
+/* --- 方法提示条：左侧发光 --- */
+.method-strip {
+  position: relative;
+  overflow: hidden;
+}
+.method-strip::after {
+  content: '';
+  position: absolute; top: 0; left: 0;
+  width: 3px; height: 100%;
+  background: linear-gradient(180deg, #4d9ca3, #6dbdb6);
+  box-shadow: 0 0 12px rgba(77,156,163,.5);
+}
+.method-strip:hover {
+  transform: translateX(2px);
+}
+
+/* --- 每日芯片：呼吸圆点 --- */
+.daily-chip span {
+  animation: pulseDot 2s ease-in-out infinite;
+}
+@keyframes pulseDot {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(77,156,163,.4); }
+  50%      { box-shadow: 0 0 0 5px rgba(77,156,163,0); }
+}
+
+/* --- 火焰图标：火焰跳动 --- */
+.flame-icon, .streak svg {
+  transition: transform .3s ease;
+}
+.flame-icon:hover, .streak:hover svg {
+  transform: scale(1.15) rotate(-5deg);
+}
+
+/* --- 链接箭头：滑动 --- */
+.show-copy a, .method-strip button, .queue-footer {
+  transition: all .2s ease;
+}
+.show-copy a:hover, .method-strip button:hover {
+  gap: 8px;
+  color: #2d7a82;
+}
+
+/* --- 焦点可见性 --- */
+.primary:focus-visible, .save-button:focus-visible,
+.nav-item:focus-visible, .icon-button:focus-visible,
+button:focus-visible, a:focus-visible {
+  outline: 2px solid #4d9ca3;
+  outline-offset: 2px;
+}
+
+/* --- 欢迎页 CTA 按钮增强 --- */
+.welcome-cta, .welcome-primary-btn {
+  position: relative;
+  overflow: hidden;
+}
+.welcome-cta::before, .welcome-primary-btn::before {
+  content: '';
+  position: absolute; top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.2), transparent);
+  transition: left .6s ease;
+}
+.welcome-cta:hover::before, .welcome-primary-btn:hover::before {
+  left: 100%;
+}
+
+/* --- 减少动效偏好 --- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* --- 数字滚动容器 --- */
+.animate-number {
+  font-variant-numeric: tabular-nums;
+}
+
+
+
+
+/* ===== Multi-theme system (body.theme-xxx) ===== */
+body.theme-ocean, body.theme-forest, body.theme-sunset, body.theme-lavender, body.theme-paper {
+  transition: background .3s ease, color .3s ease;
+}
+
+/* Ocean */
+body.theme-ocean {
+  --pink: #0369a1; --pink-dark: #0c4a6e; --sage: #0891b2;
+}
+body.theme-ocean .primary, body.theme-ocean .save-button { background:#0369a1; }
+body.theme-ocean .nav-item.active { background:rgba(3,105,161,.1); }
+body.theme-ocean .word-mark { border-color:rgba(3,105,161,.4); background:rgba(3,105,161,.08); }
+body.theme-ocean .progress-line span { background:linear-gradient(90deg,#38bdf8,#0369a1); }
+body.theme-ocean .review-cta { background:rgba(3,105,161,.06)!important; }
+body.theme-ocean .show-filter .active { background:rgba(3,105,161,.12); color:#0369a1; }
+
+/* Forest */
+body.theme-forest {
+  --pink: #2d6a4f; --pink-dark: #1b4332; --sage: #40916c;
+}
+body.theme-forest .primary, body.theme-forest .save-button { background:#2d6a4f; }
+body.theme-forest .nav-item.active { background:rgba(45,106,79,.1); }
+body.theme-forest .word-mark { border-color:rgba(45,106,79,.4); background:rgba(45,106,79,.08); }
+body.theme-forest .progress-line span { background:linear-gradient(90deg,#52b788,#2d6a4f); }
+body.theme-forest .review-cta { background:rgba(45,106,79,.06)!important; }
+body.theme-forest .show-filter .active { background:rgba(45,106,79,.12); color:#2d6a4f; }
+
+/* Sunset */
+body.theme-sunset {
+  --pink: #c2410c; --pink-dark: #7c2d12; --sage: #d97706;
+}
+body.theme-sunset .primary, body.theme-sunset .save-button { background:#c2410c; }
+body.theme-sunset .nav-item.active { background:rgba(194,65,12,.1); }
+body.theme-sunset .word-mark { border-color:rgba(194,65,12,.4); background:rgba(254,215,170,.35); }
+body.theme-sunset .progress-line span { background:linear-gradient(90deg,#fb923c,#c2410c); }
+body.theme-sunset .review-cta { background:rgba(194,65,12,.06)!important; }
+body.theme-sunset .show-filter .active { background:rgba(194,65,12,.12); color:#c2410c; }
+
+/* Lavender */
+body.theme-lavender {
+  --pink: #7c3aed; --pink-dark: #4c1d95; --sage: #a78bfa;
+}
+body.theme-lavender .primary, body.theme-lavender .save-button { background:#7c3aed; }
+body.theme-lavender .nav-item.active { background:rgba(124,58,237,.1); }
+body.theme-lavender .word-mark { border-color:rgba(124,58,237,.4); background:rgba(233,213,255,.5); }
+body.theme-lavender .progress-line span { background:linear-gradient(90deg,#c084fc,#7c3aed); }
+body.theme-lavender .review-cta { background:rgba(124,58,237,.06)!important; }
+body.theme-lavender .show-filter .active { background:rgba(124,58,237,.12); color:#7c3aed; }
+
+/* Paper */
+body.theme-paper {
+  --pink: #5c4a3a; --pink-dark: #4a3a2e; --sage: #6b7f5e;
+  background:#f5efe3; color:#3e3229;
+}
+body.theme-paper .app-shell { background:linear-gradient(180deg,#f5efe3 0%,#f0e8d8 100%); }
+body.theme-paper .primary, body.theme-paper .save-button { background:#5c4a3a; box-shadow:none; }
+body.theme-paper .nav-item.active { background:rgba(93,76,60,.1); color:#3e3229; }
+body.theme-paper .streak { background:rgba(93,76,60,.06); }
+body.theme-paper .method-strip { border-color:rgba(93,76,60,.15); border-left-color:#5c4a3a; background:rgba(255,252,247,.5); }
+body.theme-paper .word-mark { border-color:rgba(93,76,60,.4); background:rgba(93,76,60,.08); }
+body.theme-paper .article blockquote { background:rgba(93,76,60,.06); }
+body.theme-paper .progress-line span { background:#5c4a3a; }
+body.theme-paper .primary-study { border-color:rgba(93,76,60,.12); background:rgba(255,252,247,.5); box-shadow:none; }
+body.theme-paper .show-filter .active { background:rgba(93,76,60,.12); color:#3e3229; }
+body.theme-paper .root-box, body.theme-paper .scene-box { background:rgba(93,76,60,.05); }
+body.theme-paper .review-cta { background:rgba(93,76,60,.06)!important; }
+body.theme-paper .toast { background:#ede5d3; color:#3e3229; }
+body.theme-paper .word-card, body.theme-paper .daily-queue, body.theme-paper .vocab-stats, body.theme-paper .root-feature, body.theme-paper .reading-layout { box-shadow:none!important; }
+body.theme-paper .article p { color:#4a3f35; }
+
+
+/* Theme picker styles */
+.theme-options {
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.theme-swatch {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 8px 10px; border: 2px solid transparent; border-radius: 10px;
+  background: transparent; cursor: pointer; transition: .15s;
+}
+.theme-swatch:hover { background: rgba(128,128,128,.06); }
+.theme-swatch.active { border-color: currentColor; background: rgba(128,128,128,.04); }
+.swatch-dots { display: flex; gap: 3px; }
+.swatch-dots span {
+  width: 18px; height: 18px; border-radius: 50%; border: 1px solid rgba(0,0,0,.1);
+}
+.theme-swatch small { font-size: 11px; color: inherit; }

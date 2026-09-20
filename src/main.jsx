@@ -14,6 +14,7 @@ import PdfViewer from './PdfViewer'
 import ImageTranslator from './OcrTranslate'
 import './styles.css'
 import { AFFIX_TYPES, affixData } from './rootData'
+import { wordKey, localDateKey, simpleHash, arpabetToIPA, analyzeWord, getFlameProps, getIconProps } from './utils'
 
 GlobalWorkerOptions.workerSrc = pdfWorker
 
@@ -225,17 +226,7 @@ const basicMeanings = {
   information: '信息', choosing: '选择', direction: '方向', attention: '注意力', beginning: '开始', learning: '学习',
 }
 
-function wordKey(text) {
-  return text.toLowerCase().replace(/[^a-z]/g, '')
-}
-
-// 本地日期键（YYYY-MM-DD）：避免 toISOString 的 UTC 时区偏移导致凌晨日期错位
-function localDateKey(d = new Date()) {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
+// wordKey / localDateKey 已移至 utils.js
 
 function buildWordData(text) {
   const key = wordKey(text)
@@ -248,277 +239,10 @@ function buildWordData(text) {
   }
 }
 
-// ===== 词根词缀字典（用于自动拆分导入词）=====
-const AFFIX_DICT = {
-  prefixes: [
-    { a: 'un', m: '不，非，相反' }, { a: 're', m: '再，重新，回' }, { a: 'pre', m: '前，预先' },
-    { a: 'dis', m: '不，分离，相反' }, { a: 'in', m: '不，向内' }, { a: 'im', m: '不，向内（b/m/p前）' },
-    { a: 'en', m: '使…，进入' }, { a: 'em', m: '使…（b/m/p前）' }, { a: 'ex', m: '出，外，前任' },
-    { a: 'pro', m: '向前，支持' }, { a: 'con', m: '共同，一起' }, { a: 'com', m: '共同，一起' },
-    { a: 'de', m: '向下，去除，相反' }, { a: 'sub', m: '下，次，副' }, { a: 'trans', m: '跨越，转移' },
-    { a: 'inter', m: '在…之间，相互' }, { a: 'anti', m: '反对，对抗' }, { a: 'auto', m: '自己，自动' },
-    { a: 'bi', m: '二，双' }, { a: 'co', m: '共同' }, { a: 'counter', m: '相反，对抗' },
-    { a: 'extra', m: '额外，超出' }, { a: 'fore', m: '前，预先' }, { a: 'hyper', m: '超过，过度' },
-    { a: 'micro', m: '微小' }, { a: 'mis', m: '错误，坏' }, { a: 'mono', m: '单一' },
-    { a: 'multi', m: '多' }, { a: 'non', m: '非，不' }, { a: 'over', m: '过度，在上' },
-    { a: 'post', m: '后，在…之后' }, { a: 'semi', m: '半' }, { a: 'super', m: '超级，在上' },
-    { a: 'sur', m: '超过，在上' }, { a: 'syn', m: '共同，一起' }, { a: 'sym', m: '共同，一起' },
-    { a: 'tele', m: '远' }, { a: 'tri', m: '三' }, { a: 'ultra', m: '超，极端' },
-    { a: 'under', m: '在下，不足' }, { a: 'out', m: '外，超过' }, { a: 'up', m: '向上' },
-    { a: 'down', m: '向下' }, { a: 'back', m: '向后，回' }, { a: 'mid', m: '中间' },
-    { a: 'self', m: '自我' }, { a: 'step', m: '继，后' }, { a: 'vice', m: '副' },
-    { a: 'ad', m: '朝向，加强' }, { a: 'ac', m: '朝向（ad-变体）' }, { a: 'af', m: '朝向（ad-变体）' },
-    { a: 'ag', m: '朝向（ad-变体）' }, { a: 'al', m: '朝向（ad-变体）' }, { a: 'an', m: '朝向（ad-变体）' },
-    { a: 'ap', m: '朝向（ad-变体）' }, { a: 'ar', m: '朝向（ad-变体）' }, { a: 'as', m: '朝向（ad-变体）' },
-    { a: 'at', m: '朝向（ad-变体）' }, { a: 'ab', m: '离开，相反' }, { a: 'abs', m: '离开，相反' },
-    { a: 'ambi', m: '两边，周围' }, { a: 'amphi', m: '两边，周围' }, { a: 'ante', m: '前' },
-    { a: 'circum', m: '周围' }, { a: 'contra', m: '相反' }, { a: 'contro', m: '相反' },
-    { a: 'deca', m: '十' }, { a: 'deci', m: '十分之一' }, { a: 'demi', m: '半' },
-    { a: 'di', m: '二，分开' }, { a: 'dia', m: '穿过，相对' }, { a: 'dif', m: '分开（dis-变体）' },
-    { a: 'dys', m: '坏，困难' }, { a: 'e', m: '出（ex-变体）' }, { a: 'ef', m: '出（ex-变体）' },
-    { a: 'electro', m: '电' }, { a: 'em', m: '使…（b/m/p前）' }, { a: 'epi', m: '在…上，附加' },
-    { a: 'eu', m: '好，优' }, { a: 'exo', m: '外' }, { a: 'extra', m: '额外，超出' },
-    { a: 'infra', m: '在下' }, { a: 'intra', m: '在内' }, { a: 'intro', m: '向内' },
-    { a: 'iso', m: '等，同' }, { a: 'macro', m: '大' }, { a: 'magni', m: '大' },
-    { a: 'maxi', m: '大' }, { a: 'mega', m: '大，百万' }, { a: 'meta', m: '变化，超越' },
-    { a: 'milli', m: '千分之一' }, { a: 'mini', m: '小' }, { a: 'mis', m: '错误，坏' },
-    { a: 'mono', m: '单一' }, { a: 'multi', m: '多' }, { a: 'neo', m: '新' },
-    { a: 'non', m: '非，不' }, { a: 'omni', m: '全' }, { a: 'ortho', m: '正，直' },
-    { a: 'paleo', m: '古' }, { a: 'pan', m: '全，泛' }, { a: 'para', m: '旁，类似' },
-    { a: 'pen', m: '几乎' }, { a: 'penta', m: '五' }, { a: 'per', m: '通过，完全' },
-    { a: 'peri', m: '周围，环绕' }, { a: 'poly', m: '多' }, { a: 'post', m: '后，在…之后' },
-    { a: 'pre', m: '前，预先' }, { a: 'preter', m: '超过' }, { a: 'pro', m: '向前，支持' },
-    { a: 'pros', m: '向前，向' }, { a: 'proto', m: '原始，第一' }, { a: 'pseudo', m: '假' },
-    { a: 'quad', m: '四' }, { a: 'quadri', m: '四' }, { a: 'quasi', m: '类似，半' },
-    { a: 'quin', m: '五' }, { a: 're', m: '再，重新，回' }, { a: 'retro', m: '向后，回' },
-    { a: 'se', m: '分开，离开' }, { a: 'semi', m: '半' }, { a: 'sept', m: '七' },
-    { a: 'sex', m: '六' }, { a: 'sin', m: '中国' }, { a: 'sino', m: '中国' },
-    { a: 'socio', m: '社会' }, { a: 'solo', m: '单独' }, { a: 'soph', m: '智慧' },
-    { a: 'speci', m: '种类' }, { a: 'spectro', m: '光谱' }, { a: 'sperm', m: '种子' },
-    { a: 'sphero', m: '球' }, { a: 'spino', m: '脊柱' }, { a: 'spiro', m: '呼吸' },
-    { a: 'splanchno', m: '内脏' }, { a: 'staphylo', m: '葡萄状' }, { a: 'steato', m: '脂肪' },
-    { a: 'steno', m: '狭窄' }, { a: 'stereo', m: '立体' }, { a: 'stheno', m: '力量' },
-    { a: 'stomato', m: '口' }, { a: 'strepto', m: '链状' }, { a: 'sub', m: '下，次，副' },
-    { a: 'suc', m: '在下（sub-变体）' }, { a: 'suf', m: '在下（sub-变体）' }, { a: 'sug', m: '在下（sub-变体）' },
-    { a: 'sum', m: '在下（sub-变体）' }, { a: 'sup', m: '在下（sub-变体）' }, { a: 'sur', m: '在下（sub-变体）' },
-    { a: 'sus', m: '在下（sub-变体）' }, { a: 'super', m: '超级，在上' }, { a: 'supra', m: '在上' },
-    { a: 'sym', m: '共同（syn-变体）' }, { a: 'syn', m: '共同，一起' }, { a: 'syringo', m: '管，瘘管' },
-    { a: 'tab', m: '平板' }, { a: 'tachy', m: '快速' }, { a: 'tauto', m: '相同' },
-    { a: 'techno', m: '技术' }, { a: 'tele', m: '远' }, { a: 'temporo', m: '时间，颞' },
-    { a: 'ten', m: '保持，伸展' }, { a: 'tendo', m: '腱' }, { a: 'teneo', m: '保持' },
-    { a: 'terato', m: '畸形' }, { a: 'tetra', m: '四' }, { a: 'thalamo', m: '丘脑' },
-    { a: 'thermo', m: '热' }, { a: 'thoraco', m: '胸' }, { a: 'thrombo', m: '血栓' },
-    { a: 'thyro', m: '甲状腺' }, { a: 'toco', m: '分娩' }, { a: 'tono', m: '张力' },
-    { a: 'topo', m: '地方' }, { a: 'toxico', m: '毒' }, { a: 'trachelo', m: '颈' },
-    { a: 'tracheo', m: '气管' }, { a: 'trans', m: '跨越，转移' }, { a: 'traumato', m: '创伤' },
-    { a: 'tri', m: '三' }, { a: 'tricho', m: '毛，发' }, { a: 'trigono', m: '三角' },
-    { a: 'triplo', m: '三倍' }, { a: 'tropho', m: '营养' }, { a: 'tropo', m: '转变' },
-    { a: 'tubo', m: '管' }, { a: 'tumo', m: '肿胀' }, { a: 'tympano', m: '鼓，鼓膜' },
-    { a: 'typhlo', m: '盲，盲肠' }, { a: 'ultra', m: '超，极端' }, { a: 'umbra', m: '阴影' },
-    { a: 'un', m: '不，非，相反' }, { a: 'uni', m: '一' }, { a: 'urano', m: '腭，天空' },
-    { a: 'uretero', m: '输尿管' }, { a: 'urethro', m: '尿道' }, { a: 'urg', m: '工作，驱动' },
-    { a: 'uro', m: '尿，尾' }, { a: 'uter', m: '子宫' }, { a: 'uve', m: '葡萄膜' },
-    { a: 'vago', m: '迷走，流浪' }, { a: 'vasculo', m: '血管' }, { a: 'vaso', m: '管，血管' },
-    { a: 'ven', m: '来，静脉' }, { a: 'ventro', m: '腹，前' }, { a: 'vermi', m: '蠕虫' },
-    { a: 'verso', m: '转' }, { a: 'vertebro', m: '椎骨，关节' }, { a: 'vesico', m: '膀胱，泡' },
-    { a: 'vestibulo', m: '前庭' }, { a: 'vibrio', m: '弧菌' }, { a: 'villi', m: '绒毛' },
-    { a: 'vir', m: '男人，毒' }, { a: 'viscero', m: '内脏' }, { a: 'vitello', m: '卵黄' },
-    { a: 'vitro', m: '玻璃' }, { a: 'viv', m: '活' }, { a: 'vulvo', m: '外阴' },
-    { a: 'xantho', m: '黄色' }, { a: 'xeno', m: '异，外来' }, { a: 'xero', m: '干燥' },
-    { a: 'xylo', m: '木' }, { a: 'zo', m: '动物，生命' }, { a: 'zoo', m: '动物' },
-    { a: 'zygo', m: '接合，轭' }, { a: 'zymo', m: '酶，发酵' },
-  ],
-  suffixes: [
-    { a: 'tion', m: '名词，表行为/状态' }, { a: 'sion', m: '名词，表行为/状态' },
-    { a: 'ment', m: '名词，表行为/结果' }, { a: 'ness', m: '名词，表性质/状态' },
-    { a: 'ity', m: '名词，表性质/状态' }, { a: 'ty', m: '名词，表性质/状态' },
-    { a: 'ance', m: '名词，表性质/状态' }, { a: 'ence', m: '名词，表性质/状态' },
-    { a: 'age', m: '名词，表集合/状态' }, { a: 'ure', m: '名词，表行为/结果' },
-    { a: 'dom', m: '名词，表领域/状态' }, { a: 'ship', m: '名词，表身份/关系' },
-    { a: 'hood', m: '名词，表身份/状态' }, { a: 'ism', m: '名词，表主义/学说' },
-    { a: 'ist', m: '名词，表从事…的人' }, { a: 'er', m: '名词，表人/物' },
-    { a: 'or', m: '名词，表人/物' }, { a: 'ar', m: '名词，表人/物' },
-    { a: 'ee', m: '名词，表受动者' }, { a: 'able', m: '形容词，可…的' },
-    { a: 'ible', m: '形容词，可…的' }, { a: 'ful', m: '形容词，充满…的' },
-    { a: 'less', m: '形容词，无…的' }, { a: 'ous', m: '形容词，具有…的' },
-    { a: 'ive', m: '形容词，有…性质的' }, { a: 'al', m: '形容词，与…有关的' },
-    { a: 'ary', m: '形容词/名词后缀' }, { a: 'ory', m: '形容词/名词后缀' },
-    { a: 'ic', m: '形容词，与…有关的' }, { a: 'ical', m: '形容词，与…有关的' },
-    { a: 'ly', m: '副词，以…方式' }, { a: 'ize', m: '动词，使…化' },
-    { a: 'ise', m: '动词，使…化（英）' }, { a: 'ify', m: '动词，使…化' },
-    { a: 'en', m: '动词，使…' }, { a: 'ate', m: '动词/形容词后缀' },
-    { a: 'ward', m: '副词，向…方向' }, { a: 'wards', m: '副词，向…方向' },
-    { a: 'esque', m: '形容词，…风格的' }, { a: 'most', m: '形容词，最…的' },
-  ],
-  roots: [
-    { r: 'port', m: '携带，运送' }, { r: 'dict', m: '说，言' }, { r: 'spect', m: '看' },
-    { r: 'struct', m: '建造' }, { r: 'duct', m: '引导' }, { r: 'tract', m: '拉，拖' },
-    { r: 'ject', m: '投掷' }, { r: 'mit', m: '发送' }, { r: 'miss', m: '发送' },
-    { r: 'vert', m: '转' }, { r: 'vers', m: '转' }, { r: 'form', m: '形状，形成' },
-    { r: 'scrib', m: '写' }, { r: 'script', m: '写' }, { r: 'graph', m: '写，画' },
-    { r: 'log', m: '说，学科' }, { r: 'logy', m: '学科，研究' }, { r: 'duc', m: '引导' },
-    { r: 'duce', m: '引导' }, { r: 'cap', m: '拿，抓，头' }, { r: 'cept', m: '拿，抓' },
-    { r: 'ceive', m: '拿，抓' }, { r: 'cip', m: '拿，抓' }, { r: 'tain', m: '保持，拿住' },
-    { r: 'ten', m: '保持，伸展' }, { r: 'tend', m: '伸展，趋向' }, { r: 'tens', m: '伸展' },
-    { r: 'sent', m: '感觉' }, { r: 'sens', m: '感觉' }, { r: 'vid', m: '看' },
-    { r: 'vis', m: '看' }, { r: 'aud', m: '听' }, { r: 'voc', m: '声音，叫' },
-    { r: 'vok', m: '叫' }, { r: 'cred', m: '相信' }, { r: 'cur', m: '跑，发生' },
-    { r: 'curs', m: '跑' }, { r: 'curr', m: '跑' }, { r: 'ven', m: '来' },
-    { r: 'vent', m: '来' }, { r: 'mov', m: '移动' }, { r: 'mot', m: '移动' },
-    { r: 'mob', m: '移动' }, { r: 'pend', m: '悬挂，支付' }, { r: 'pens', m: '悬挂，支付' },
-    { r: 'pos', m: '放置' }, { r: 'pon', m: '放置' }, { r: 'press', m: '压' },
-    { r: 'prim', m: '第一' }, { r: 'prin', m: '第一' }, { r: 'rupt', m: '破裂' },
-    { r: 'sect', m: '切割' }, { r: 'sec', m: '切割，跟随' }, { r: 'sequ', m: '跟随' },
-    { r: 'serv', m: '服务，保持' }, { r: 'sign', m: '标记，信号' }, { r: 'simil', m: '相似' },
-    { r: 'sist', m: '站立' }, { r: 'sta', m: '站立' }, { r: 'stat', m: '站立，状态' },
-    { r: 'stit', m: '站立，建立' }, { r: 'solv', m: '松开，解决' }, { r: 'solut', m: '松开' },
-    { r: 'spec', m: '看' }, { r: 'spir', m: '呼吸' }, { r: 'spond', m: '承诺，回应' },
-    { r: 'spons', m: '承诺，回应' }, { r: 'strict', m: '拉紧' }, { r: 'string', m: '拉紧' },
-    { r: 'stru', m: '建造' }, { r: 'sum', m: '拿，取' }, { r: 'sumpt', m: '拿，取，花费' },
-    { r: 'tact', m: '触摸' }, { r: 'tang', m: '触摸' }, { r: 'tect', m: '覆盖' },
-    { r: 'temp', m: '时间' }, { r: 'tempor', m: '时间' }, { r: 'term', m: '界限，末端' },
-    { r: 'terr', m: '土地' }, { r: 'test', m: '证明，测试' }, { r: 'text', m: '编织，文本' },
-    { r: 'tom', m: '切割' }, { r: 'ton', m: '声音，音调' }, { r: 'tort', m: '扭曲' },
-    { r: 'tors', m: '扭曲' }, { r: 'tox', m: '毒' }, { r: 'tribut', m: '给予' },
-    { r: 'trud', m: '推' }, { r: 'trus', m: '推' }, { r: 'turb', m: '扰乱' },
-    { r: 'uni', m: '一' }, { r: 'urb', m: '城市' }, { r: 'vac', m: '空' },
-    { r: 'van', m: '空' }, { r: 'var', m: '变化' }, { r: 'ver', m: '真实' },
-    { r: 'verb', m: '词，动词' }, { r: 'via', m: '路' }, { r: 'viv', m: '活' },
-    { r: 'vit', m: '生命' }, { r: 'vol', m: '意愿，飞' }, { r: 'volv', m: '滚动' },
-    { r: 'volut', m: '滚动' }, { r: 'vor', m: '吃' }, { r: 'vot', m: '发誓，投票' },
-    { r: 'vulg', m: '民众' }, { r: 'act', m: '做，行动' }, { r: 'ag', m: '做，驱动' },
-    { r: 'anim', m: '生命，精神' }, { r: 'ann', m: '年' }, { r: 'aqua', m: '水' },
-    { r: 'arch', m: '统治，首要' }, { r: 'astro', m: '星' }, { r: 'audi', m: '听' },
-    { r: 'bio', m: '生命' }, { r: 'brev', m: '短' }, { r: 'cad', m: '落' },
-    { r: 'cas', m: '落' }, { r: 'cid', m: '落，发生' }, { r: 'cand', m: '白，发光' },
-    { r: 'cant', m: '唱' }, { r: 'chron', m: '时间' }, { r: 'civ', m: '公民' },
-    { r: 'claim', m: '喊叫' }, { r: 'clam', m: '喊叫' }, { r: 'clin', m: '倾斜' },
-    { r: 'clud', m: '关闭' }, { r: 'clus', m: '关闭' }, { r: 'cogn', m: '知道' },
-    { r: 'cord', m: '心' }, { r: 'corp', m: '身体' }, { r: 'cosm', m: '宇宙，秩序' },
-    { r: 'crat', m: '统治' }, { r: 'crit', m: '判断，分离' }, { r: 'cruc', m: '十字' },
-    { r: 'crypt', m: '隐藏' }, { r: 'cult', m: '耕种，培养' }, { r: 'dem', m: '人民' },
-    { r: 'dent', m: '牙齿' }, { r: 'derm', m: '皮肤' }, { r: 'di', m: '日' },
-    { r: 'doc', m: '教' }, { r: 'doct', m: '教' }, { r: 'dom', m: '家，统治' },
-    { r: 'dorm', m: '睡眠' }, { r: 'drom', m: '跑' }, { r: 'dur', m: '持续，硬' },
-    { r: 'ego', m: '自我' }, { r: 'equ', m: '相等' }, { r: 'erg', m: '工作' },
-    { r: 'err', m: '漫游，错误' }, { r: 'ev', m: '年龄，时代' }, { r: 'fac', m: '做' },
-    { r: 'fact', m: '做' }, { r: 'fect', m: '做' }, { r: 'fer', m: '携带，带来' },
-    { r: 'fid', m: '信任' }, { r: 'fin', m: '结束，界限' }, { r: 'firm', m: '坚固' },
-    { r: 'fix', m: '固定' }, { r: 'flam', m: '火焰' }, { r: 'flect', m: '弯曲' },
-    { r: 'flex', m: '弯曲' }, { r: 'flu', m: '流' }, { r: 'fluct', m: '流' },
-    { r: 'frag', m: '破碎' }, { r: 'fract', m: '破碎' }, { r: 'frig', m: '冷' },
-    { r: 'frug', m: '果实，节俭' }, { r: 'fug', m: '逃' }, { r: 'fus', m: '倾倒，流' },
-    { r: 'gam', m: '婚姻，结合' }, { r: 'gen', m: '产生，种类' }, { r: 'geo', m: '地球' },
-    { r: 'germ', m: '芽，种子' }, { r: 'gest', m: '携带' }, { r: 'gigant', m: '巨大' },
-    { r: 'glaci', m: '冰' }, { r: 'gloss', m: '语言，舌头' }, { r: 'glot', m: '语言' },
-    { r: 'gon', m: '角' }, { r: 'grad', m: '步，级' }, { r: 'gress', m: '步，走' },
-    { r: 'grat', m: '感谢，喜悦' }, { r: 'grav', m: '重' }, { r: 'greg', m: '群' },
-    { r: 'gyn', m: '女性' }, { r: 'hab', m: '拥有，居住' }, { r: 'hibit', m: '拥有，展示' },
-    { r: 'helio', m: '太阳' }, { r: 'hema', m: '血' }, { r: 'hemo', m: '血' },
-    { r: 'her', m: '粘附' }, { r: 'hes', m: '粘附' }, { r: 'hetero', m: '异' },
-    { r: 'hex', m: '六' }, { r: 'hier', m: '神圣' }, { r: 'hist', m: '组织，历史' },
-    { r: 'homo', m: '同' }, { r: 'hor', m: '时间，小时' }, { r: 'hort', m: '花园' },
-    { r: 'hum', m: '地，人' }, { r: 'hydr', m: '水' }, { r: 'hyg', m: '健康' },
-    { r: 'iatr', m: '治疗' }, { r: 'icon', m: '图像' }, { r: 'ideo', m: '观念' },
-    { r: 'idi', m: '自己的，特有的' }, { r: 'ign', m: '火' }, { r: 'imag', m: '形象' },
-    { r: 'imit', m: '模仿' }, { r: 'insul', m: '岛' }, { r: 'integr', m: '完整' },
-    { r: 'intr', m: '内部' }, { r: 'iod', m: '碘' }, { r: 'ir', m: '彩虹' },
-    { r: 'iron', m: '铁' }, { r: 'iso', m: '等，同' }, { r: 'it', m: '走' },
-    { r: 'jac', m: '躺，投掷' }, { r: 'jan', m: '门' }, { r: 'joc', m: '玩笑' },
-    { r: 'jud', m: '判断' }, { r: 'jug', m: '连接，轭' }, { r: 'junct', m: '连接' },
-    { r: 'jur', m: '法律，发誓' }, { r: 'just', m: '公正' }, { r: 'juven', m: '年轻' },
-    { r: 'labor', m: '劳动' }, { r: 'lact', m: '乳' }, { r: 'lapid', m: '石头' },
-    { r: 'laps', m: '滑，落' }, { r: 'lat', m: '携带，宽' }, { r: 'later', m: '侧面' },
-    { r: 'lav', m: '洗' }, { r: 'lax', m: '松' }, { r: 'lect', m: '选择，读' },
-    { r: 'leg', m: '法律，读，选择' }, { r: 'leng', m: '长' }, { r: 'lev', m: '轻，举' },
-    { r: 'liber', m: '自由' }, { r: 'libr', m: '书，秤' }, { r: 'lic', m: '允许，引诱' },
-    { r: 'lig', m: '绑，选择' }, { r: 'lim', m: '门槛，限制' }, { r: 'limp', m: '跛' },
-    { r: 'line', m: '线' }, { r: 'ling', m: '语言，舌' }, { r: 'linqu', m: '离开' },
-    { r: 'liqu', m: '液体' }, { r: 'liter', m: '字母，文学' }, { r: 'lith', m: '石头' },
-    { r: 'loc', m: '地方' }, { r: 'log', m: '说，学科' }, { r: 'long', m: '长' },
-    { r: 'loqu', m: '说' }, { r: 'luc', m: '光' }, { r: 'lud', m: '玩，欺骗' },
-    { r: 'lus', m: '玩，欺骗' }, { r: 'lumin', m: '光' }, { r: 'lun', m: '月亮' },
-    { r: 'lust', m: '光，渴望' }, { r: 'ly', m: '松开' }, { r: 'lys', m: '松开，分解' },
-  ]
-}
-
-// 自动分析单词的词根词缀
-function analyzeWord(word) {
-  const w = (word || '').toLowerCase().replace(/[^a-z]/g, '')
-  const result = { prefix: null, root: null, suffix: null, breakdown: [] }
-  if (w.length < 3) return result
-
-  // 前缀（最长匹配，且剩余部分至少3个字母）
-  const pfx = [...AFFIX_DICT.prefixes].sort((a, b) => b.a.length - a.a.length)
-  for (const p of pfx) {
-    if (w.startsWith(p.a) && w.length - p.a.length >= 3) {
-      result.prefix = p
-      break
-    }
-  }
-
-  // 后缀（最长匹配）
-  const sfx = [...AFFIX_DICT.suffixes].sort((a, b) => b.a.length - a.a.length)
-  for (const s of sfx) {
-    const startIdx = result.prefix ? result.prefix.a.length : 0
-    const middle = w.slice(startIdx)
-    if (middle.endsWith(s.a) && middle.length - s.a.length >= 2) {
-      result.suffix = s
-      break
-    }
-  }
-
-  // 词根（在去掉前后缀后的中间部分匹配，最长优先）
-  // 修复：只在中间部分「开头」匹配，禁止在全词乱找短子串，避免
-  // disappointing→di日、authoritative→hor时间 这类错误拆解
-  let middle = w
-  if (result.prefix) middle = middle.slice(result.prefix.a.length)
-  if (result.suffix) middle = middle.slice(0, middle.length - result.suffix.a.length)
-  const rts = [...AFFIX_DICT.roots].sort((a, b) => b.r.length - a.r.length)
-  for (const r of rts) {
-    if (middle === r.r || middle.startsWith(r.r)) {
-      // 短词根（≤3字母）必须几乎占满中段，否则视为无关子串跳过
-      if (r.r.length <= 3 && middle.length - r.r.length > 2) continue
-      result.root = r
-      break
-    }
-  }
-
-  // 构建拆分描述
-  if (result.prefix) result.breakdown.push(`${result.prefix.a}-（${result.prefix.m}）`)
-  if (result.root) result.breakdown.push(`${result.root.r}（${result.root.m}）`)
-  if (result.suffix) result.breakdown.push(`-${result.suffix.a}（${result.suffix.m}）`)
-
-  return result
-}
+// AFFIX_DICT / analyzeWord 已移至 utils.js
 
 // 联网查询单词的音标和例句（Free Dictionary API，带 localStorage 缓存）
-// ARPAbet 音素 → IPA 映射（简化版）
-const ARPABET_TO_IPA = {
-  AA: 'ɑ', AE: 'æ', AH: 'ʌ', AO: 'ɔ', AW: 'aʊ', AY: 'aɪ',
-  B: 'b', CH: 'tʃ', D: 'd', DH: 'ð', EH: 'ɛ', ER: 'ɜr', EY: 'eɪ',
-  F: 'f', G: 'ɡ', HH: 'h', IH: 'ɪ', IY: 'i', JH: 'dʒ',
-  K: 'k', L: 'l', M: 'm', N: 'n', NG: 'ŋ', OW: 'oʊ', OY: 'ɔɪ',
-  P: 'p', R: 'r', S: 's', SH: 'ʃ', T: 't', TH: 'θ',
-  UH: 'ʊ', UW: 'u', V: 'v', W: 'w', Y: 'j', Z: 'z', ZH: 'ʒ',
-}
-
-// ARPAbet 发音串 → IPA 音标（带重音）
-function arpabetToIPA(arpabet) {
-  if (!arpabet) return ''
-  const phonemes = arpabet.trim().split(/\s+/)
-  let ipa = ''
-  for (const ph of phonemes) {
-    const match = ph.match(/^([A-Z]+)([012]?)$/)
-    if (!match) continue
-    const [, base, stress] = match
-    const ipaPhoneme = ARPABET_TO_IPA[base] || base.toLowerCase()
-    if (stress === '1') ipa += 'ˈ'
-    else if (stress === '2') ipa += 'ˌ'
-    ipa += ipaPhoneme
-  }
-  return ipa ? `/${ipa}/` : ''
-}
+// ARPABET_TO_IPA / arpabetToIPA 已移至 utils.js
 
 // 联网查询单词的音标和例句（Datamuse API，带 localStorage 缓存）
 async function fetchWordDetail(word) {
@@ -661,58 +385,9 @@ function ArticleText({ text, marks, setSelectedWord, extraDict }) {
 }
 
 // 根据连续学习天数返回火焰样式（天数越高越旺越大越红）
-function getFlameProps(streak) {
-  const s = Math.max(0, streak || 0)
-  const size = Math.min(36, 14 + s * 0.8)
-  let color = '#fbbf24'
-  if (s >= 30) color = '#dc2626'
-  else if (s >= 15) color = '#ef4444'
-  else if (s >= 8) color = '#f97316'
-  else if (s >= 4) color = '#f59e0b'
-  let burnClass = 'flame-calm'
-  if (s >= 30) burnClass = 'flame-fury'
-  else if (s >= 15) burnClass = 'flame-blaze'
-  else if (s >= 7) burnClass = 'flame-dance'
-  const glow = s >= 15 ? `0 0 ${Math.min(20, s * 0.5)}px ${color}66` : 'none'
-  return { size, color, burnClass, glow }
-}
+// getFlameProps / getIconProps 已移至 utils.js
 
-// 通用图标等级系统：根据数值返回大小/颜色/动画/光晕
-// type: trophy(奖杯/单词) | clock(时钟/阅读) | zap(闪电/XP) | flame(火焰/天数)
-function getIconProps(type, value) {
-  const v = Math.max(0, value || 0)
-  // 各类型的等级阈值
-  const thresholds = {
-    trophy: [10, 50, 200, 500],      // 单词数
-    clock: [1, 5, 20, 50],             // 阅读小时
-    zap: [100, 500, 2000, 5000],       // XP
-    flame: [4, 8, 15, 30],              // 天数
-  }
-  const colors = {
-    trophy: ['#cd7f32', '#c0c0c0', '#f59e0b', '#fbbf24', '#a855f7'],  // 铜→银→金→亮金→紫(传说)
-    clock: ['#9ca3af', '#3b82f6', '#06b6d4', '#8b5cf6', '#f59e0b'],     // 灰→蓝→青→紫→金
-    zap: ['#fbbf24', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'],        // 黄→橙→红→紫→粉
-    flame: ['#fbbf24', '#f59e0b', '#f97316', '#ef4444', '#dc2626'],      // 黄→橙→深橙→红→深红
-  }
-  const labels = {
-    trophy: ['入门', '初级', '中级', '高级', '大师'],
-    clock: ['入门', '初级', '中级', '高级', '大师'],
-    zap: ['入门', '初级', '中级', '高级', '大师'],
-    flame: ['初燃', '渐旺', '跳动', '燃烧', '狂暴'],
-  }
-  const thresh = thresholds[type] || [10, 50, 200, 500]
-  let level = 0
-  for (let i = 0; i < thresh.length; i++) {
-    if (v >= thresh[i]) level = i + 1
-  }
-  const color = colors[type][level]
-  const size = 18 + level * 4  // 18→22→26→30→34
-  const animClass = level >= 4 ? 'icon-legendary' : level >= 3 ? 'icon-advanced' : level >= 2 ? 'icon-intermediate' : level >= 1 ? 'icon-beginner' : 'icon-starter'
-  const glow = level >= 3 ? `0 0 ${8 + level * 3}px ${color}88` : 'none'
-  return { level, color, size, animClass, glow, label: labels[type][level] }
-}
-
-function WelcomePage({ onEnter }) {
+function WelcomePage({ onEnter, onOpenSettings }) {
   const tags = ['PDF / EPUB 导入', '点词查释义', '词根词缀记忆', '智能记忆反馈', '经验等级系统', '融合阅读', '论文PDF精读']
   const [showFeedback, setShowFeedback] = useState(false)
   const [feedbackText, setFeedbackText] = useState('')
@@ -941,7 +616,7 @@ function WelcomePage({ onEnter }) {
         <div className="welcome-actions">
           <div className="welcome-secondary-actions">
             <button className="welcome-mini-btn" onClick={() => { setShowFeedback(true); setFeedbackSent(false); setFeedbackText('') }}><MessageSquare size={14} /> 使用反馈</button>
-            <button className="welcome-mini-btn welcome-mini-btn-primary" onClick={() => setShowAppreciate(true)}><Heart size={14} /> 赞赏</button>
+            <button className="welcome-mini-btn welcome-mini-btn-primary" onClick={() => setShowAppreciate(true)}><Heart size={14} /> 赞赏</button><button className="welcome-mini-btn" onClick={onOpenSettings}><Settings2 size={14} /> 设置</button>
             <button className="welcome-mini-btn" onClick={() => setShowQr(true)}><QrCode size={14} /> 手机打开</button>
           </div>
           <button className="welcome-enter-btn" onClick={onEnter}>
@@ -1070,13 +745,7 @@ function WelcomePage({ onEnter }) {
 }
 
 // 简单哈希（本地应用，非安全用途）
-function simpleHash(str) {
-  let h = 0
-  for (let i = 0; i < str.length; i++) {
-    h = ((h << 5) - h + str.charCodeAt(i)) | 0
-  }
-  return h.toString(36)
-}
+// simpleHash 已移至 utils.js
 
 function getUsers() {
   try { return JSON.parse(localStorage.getItem('ll_users') || '{}') } catch (e) { return {} }
@@ -1332,6 +1001,8 @@ function LoginModal({ onLogin, onClose }) {
 }
 
 function App() {
+  // 初始化主题
+  try { const t = localStorage.getItem('app_theme'); if (t) document.body.classList.add('theme-' + t) } catch(e) {}
   const [showWelcome, setShowWelcome] = useState(() => {
     try { return localStorage.getItem('skip_welcome') !== '1' } catch (e) { return true }
   })
@@ -1656,7 +1327,8 @@ function App() {
   }
 
   if (showWelcome) {
-    return <WelcomePage onEnter={() => setShowWelcome(false)} />
+    return <><WelcomePage onEnter={() => setShowWelcome(false)} onOpenSettings={() => setShowSettings(true)} />
+    {showSettings && <SettingsModal flameState={flameState} setFlameState={setFlameState} onClose={() => setShowSettings(false)} />}</>
   }
   const requireLogin = () => {
     if (!isLoggedIn) { setShowLogin(true); return false }
@@ -1684,7 +1356,7 @@ function App() {
       <div className="sidebar-bottom"><div className="streak"><Flame size={getFlameProps(flameState.streak).size} color={getFlameProps(flameState.streak).color} className={getFlameProps(flameState.streak).burnClass} fill={getFlameProps(flameState.streak).color} style={{filter: getFlameProps(flameState.streak).glow !== 'none' ? `drop-shadow(${getFlameProps(flameState.streak).glow})` : 'none'}} /><div><strong>连续 {flameState.streak} 天</strong><small>{flameState.isBroken ? `⚠ 中断中，今日需记 ${flameState.wordsNeededToday} 词续火` : flameState.streak >= 15 ? '燃烧正旺！' : flameState.streak >= 7 ? '火焰跳动中' : '保持你的节奏'}</small></div><Zap size={15} /></div><button className="settings" onClick={() => setShowSettings(true)}><Settings2 size={18} /> 学习设置</button></div>
     </aside>
     <main className="main-area">
-      <header className="topbar"><button className="mobile-menu" onClick={() => setMobileNav(!mobileNav)}><Menu size={21} /></button><div className="breadcrumb">{navItems.find((item) => item.id === active)?.label}<span>/</span><em>{active === 'today' ? '今天，开始一小步' : '把理解变成直觉'}</em></div><div className="top-actions"><button className="icon-button" onClick={() => setShowHelp(true)}><CircleHelp size={18} /></button><button className="qr-open" onClick={() => setShowQr(true)} title="扫码在手机上打开"><QrCode size={18} /></button><div className="daily-chip"><span></span> 今日目标 <strong>{todayGoalPct}%</strong></div></div></header>
+      <header className="topbar"><button className="mobile-menu" onClick={() => setMobileNav(!mobileNav)}><Menu size={21} /></button><div className="breadcrumb">{navItems.find((item) => item.id === active)?.label}<span>/</span><em>{active === 'today' ? '今天，开始一小步' : '把理解变成直觉'}</em></div><div className="top-actions"><button className="icon-button" onClick={() => setShowHelp(true)}><CircleHelp size={18} /></button><button className="qr-open" onClick={() => setShowQr(true)} title="扫码在手机上打开"><QrCode size={18} /></button><button className="qr-open" onClick={() => setShowSettings(true)} title="设置"><Settings2 size={18} /></button><div className="daily-chip"><span></span> 今日目标 <strong>{todayGoalPct}%</strong></div></div></header>
       <div className="page-content">{renderPage()}</div>
     </main>
     {toast && <div className="toast"><Check size={16} /> {toast}</div>}
@@ -1692,6 +1364,36 @@ function App() {
     {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
     {showQr && <QrModal onClose={() => setShowQr(false)} />}
     {showLogin && <LoginModal onLogin={handleLoginSuccess} onClose={() => setShowLogin(false)} />}
+  </div>
+}
+
+function ThemePicker() {
+  const THEMES = [
+    { id: '', label: '默认', colors: ['#df8f91', '#faf5f4', '#4b4948'] },
+    { id: 'ocean', label: '海洋', colors: ['#0369a1', '#f0f9ff', '#0f2740'] },
+    { id: 'forest', label: '森林', colors: ['#2d6a4f', '#f0fdf4', '#1a2e1f'] },
+    { id: 'sunset', label: '日落', colors: ['#c2410c', '#fff7ed', '#2d1b0e'] },
+    { id: 'lavender', label: '薰衣草', colors: ['#7c3aed', '#faf5ff', '#2e1065'] },
+    { id: 'paper', label: '纸张', colors: ['#5c4a3a', '#f5efe3', '#3e3229'] },
+  ]
+  const [current, setCurrent] = useState(() => { try { return localStorage.getItem('app_theme') || '' } catch(e) { return '' } })
+  const pick = (id) => {
+    setCurrent(id)
+    try { localStorage.setItem('app_theme', id) } catch(e) {}
+    document.body.className = document.body.className.replace(/\btheme-\w+/g, '').trim()
+    if (id) document.body.classList.add('theme-' + id)
+  }
+  return <div className="theme-options">
+    {THEMES.map(t => (
+      <button key={t.id || 'default'} className={'theme-swatch' + (current === t.id ? ' active' : '')} onClick={() => pick(t.id)}>
+        <span className="swatch-dots">
+          <span style={{background: t.colors[0]}}></span>
+          <span style={{background: t.colors[1]}}></span>
+          <span style={{background: t.colors[2]}}></span>
+        </span>
+        <small>{t.label}</small>
+      </button>
+    ))}
   </div>
 }
 
@@ -1754,6 +1456,7 @@ function SettingsModal({ flameState, setFlameState, onClose }) {
     <div className="settings-section">
       <div className="settings-row"><div><strong>今日目标单词数</strong><small>每天达到这个「新掌握」数即可续火</small></div><div className="stepper"><button onClick={() => setWordsNeeded(-1)}><Minus size={14} /></button><span>{wordsNeeded}</span><button onClick={() => setWordsNeeded(1)}><Plus size={14} /></button></div></div>
       <div className="settings-row"><div><strong>发音语速</strong><small>影响单词发音与文章朗读的速度</small></div><div className="rate-options">{[{ v: 0.7, label: '慢速' }, { v: 0.9, label: '标准' }, { v: 1.0, label: '正常' }, { v: 1.2, label: '稍快' }].map((o) => <button key={o.v} className={Math.abs(rate - o.v) < 0.001 ? 'active' : ''} onClick={() => saveRate(o.v)}>{o.label}</button>)}</div></div>
+      <div className="settings-row"><div><strong>界面主题</strong><small>选择你喜欢的配色方案</small></div><ThemePicker /></div>
     </div>
     <div className="settings-section">
       <div className="settings-row"><div><strong>备份学习数据</strong><small>把词库、记忆等级、每日记录导出为 JSON 文件</small></div><button className="ghost-button" onClick={exportData}><Download size={15} /> 导出</button></div>
