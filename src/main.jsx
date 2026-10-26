@@ -13,6 +13,8 @@ import ePub from 'epubjs'
 import PdfViewer from './PdfViewer'
 import ImageTranslator from './OcrTranslate'
 import './styles.css'
+import './polish.css'
+import { startPolish } from './polish'
 import { AFFIX_TYPES, affixData } from './rootData'
 import { wordKey, localDateKey, simpleHash, arpabetToIPA, analyzeWord, getFlameProps, getIconProps } from './utils'
 
@@ -610,18 +612,18 @@ function WelcomePage({ onEnter, onOpenSettings }) {
         </div>
         <h1 className="welcome-title">把理解<br />变成<i>直觉</i></h1>
         <p className="welcome-subtitle">语境记忆 · 词根驱动 · 数据反馈</p>
-        <div className="welcome-tags">
-          {tags.map((t, i) => <span key={i} className="welcome-tag">{t}</span>)}
-        </div>
         <div className="welcome-actions">
-          <div className="welcome-secondary-actions">
-            <button className="welcome-mini-btn" onClick={() => { setShowFeedback(true); setFeedbackSent(false); setFeedbackText('') }}><MessageSquare size={14} /> 使用反馈</button>
-            <button className="welcome-mini-btn welcome-mini-btn-primary" onClick={() => setShowAppreciate(true)}><Heart size={14} /> 赞赏</button><button className="welcome-mini-btn" onClick={onOpenSettings}><Settings2 size={14} /> 设置</button>
-            <button className="welcome-mini-btn" onClick={() => setShowQr(true)}><QrCode size={14} /> 手机打开</button>
-          </div>
           <button className="welcome-enter-btn" onClick={onEnter}>
             进入体验 <ArrowUpRight size={18} />
           </button>
+        </div>
+        <div className="welcome-tags">
+          {tags.map((t, i) => <span key={i} className="welcome-tag">{t}</span>)}
+        </div>
+        <div className="welcome-secondary-actions">
+          <button className="welcome-mini-btn" onClick={() => { setShowFeedback(true); setFeedbackSent(false); setFeedbackText('') }}><MessageSquare size={14} /> 使用反馈</button>
+          <button className="welcome-mini-btn" onClick={() => setShowAppreciate(true)}><Heart size={14} /> 赞赏</button><button className="welcome-mini-btn" onClick={onOpenSettings}><Settings2 size={14} /> 设置</button>
+          <button className="welcome-mini-btn" onClick={() => setShowQr(true)}><QrCode size={14} /> 手机打开</button>
         </div>
         <div className="welcome-scroll-hint">
           <span>向下滚动了解更多</span>
@@ -1316,6 +1318,17 @@ function App() {
     setToast(exists ? '已从词汇库移除' : '已加入词汇库，稍后情景复习')
   }
 
+  useEffect(() => {
+    const stop = startPolish()
+    return stop
+  }, [])
+
+  const switchPage = (id) => {
+    setMobileNav(false)
+    if (id === active) return
+    setActive(id)
+  }
+
   const renderPage = () => {
     if (active === 'dashboard') return <DashboardPage {...{ saved, memoryLevels, rootMemoryLevels, importedVocab, readingSeconds, articlesRead, dailyStats, todayKey, yesterdayKey, flameState, todayWords, todayMetThreshold, setActive, setToast, isLoggedIn, currentUser, currentUserName, onLogout: handleLogout, onShowLogin: () => setShowLogin(true) }} />
     if (active === 'read') return <ReadingPage {...{ selectedWord, setSelectedWord, saved, toggleSave, setToast, importedVocab, memoryLevels, markMemorized, onArticleStart: () => setArticlesRead(n => n + 1) }} />
@@ -1352,7 +1365,7 @@ function App() {
       <div className="brand"><div className="brand-mark"><span></span><span></span><span></span></div><div><strong>lingua<span>.</span>lab</strong><small>英语学习实验室</small></div></div>
       <button className="sidebar-toggle" onClick={() => setSidebarCollapsed(!sidebarCollapsed)}><Menu size={20} /></button>
       <div className="nav-label">学习空间</div>
-      <nav className={sidebarCollapsed ? 'collapsed' : ''}>{navItems.map(({ id, label, icon: Icon }) => <button key={id} className={active === id ? 'nav-item active' : 'nav-item'} onClick={() => { setActive(id); setMobileNav(false) }}><Icon size={18} strokeWidth={1.8} /><span>{label}</span>{id === 'words' && <b>{saved.length}</b>}</button>)}</nav>
+      <nav className={sidebarCollapsed ? 'collapsed' : ''}>{navItems.map(({ id, label, icon: Icon }) => <button key={id} className={active === id ? 'nav-item active' : 'nav-item'} onClick={() => switchPage(id)}><Icon size={18} strokeWidth={1.8} /><span>{label}</span>{id === 'words' && <b>{saved.length}</b>}</button>)}</nav>
       <div className="sidebar-bottom"><div className="streak"><Flame size={getFlameProps(flameState.streak).size} color={getFlameProps(flameState.streak).color} className={getFlameProps(flameState.streak).burnClass} fill={getFlameProps(flameState.streak).color} style={{filter: getFlameProps(flameState.streak).glow !== 'none' ? `drop-shadow(${getFlameProps(flameState.streak).glow})` : 'none'}} /><div><strong>连续 {flameState.streak} 天</strong><small>{flameState.isBroken ? `⚠ 中断中，今日需记 ${flameState.wordsNeededToday} 词续火` : flameState.streak >= 15 ? '燃烧正旺！' : flameState.streak >= 7 ? '火焰跳动中' : '保持你的节奏'}</small></div><Zap size={15} /></div><button className="settings" onClick={() => setShowSettings(true)}><Settings2 size={18} /> 学习设置</button></div>
     </aside>
     <main className="main-area">
@@ -2889,6 +2902,9 @@ function WordsPage({ saved, toggleSave, importedVocab, readingVocab, addImported
   const [memFilter, setMemFilter] = useState('all')
   const [detailCache, setDetailCache] = useState({})
   const [detailLoading, setDetailLoading] = useState(false)
+  const [shown, setShown] = useState(84)
+
+  useEffect(() => { setShown(84) }, [search, category, memFilter])
 
   // ===== 今日复习计划 =====
   const todayKey = localDateKey()
@@ -3166,15 +3182,15 @@ function WordsPage({ saved, toggleSave, importedVocab, readingVocab, addImported
   </button>
 </div></div><div className="category-mastery"><h3>分类掌握进度</h3><div className="mastery-cards">
   {[
-    { label: '四级高频', data: cet4HighMastery, color: '#3b82f6', cls: 'cet4-high' },
-    { label: '六级高频', data: cet6HighMastery, color: '#ec4899', cls: 'cet6-high' },
-    { label: '四级核心', data: cet4CoreMastery, color: '#6366f1', cls: 'cet4-core' },
-    { label: '六级核心', data: cet6CoreMastery, color: '#a855f7', cls: 'cet6-core' },
-    { label: '阅读难词', data: readingMastery, color: '#14b8a6', cls: 'reading' },
+    { label: '四级高频', data: cet4HighMastery, color: '#c78ba0', cls: 'cet4-high' },
+    { label: '六级高频', data: cet6HighMastery, color: '#b3667f', cls: 'cet6-high' },
+    { label: '四级核心', data: cet4CoreMastery, color: '#9d5470', cls: 'cet4-core' },
+    { label: '六级核心', data: cet6CoreMastery, color: '#8c3f5c', cls: 'cet6-core' },
+    { label: '阅读难词', data: readingMastery, color: '#6f8a6a', cls: 'reading' },
   ].map(c => (
     <div key={c.cls} className={`mastery-card ${c.cls}`}><div className="mastery-card-head"><span className="mastery-label">{c.label}</span><strong>{c.data.pct}%</strong></div><div className="mastery-bar"><span style={{width:`${c.data.pct}%`,background:c.color}}></span></div><small>{c.data.mastered} / {c.data.total} 已掌握</small></div>
   ))}
-</div></div><div className="memory-progress"><div className="memory-progress-bar">{memCounts.map((c, i) => c > 0 ? <span key={i} className={`mem-level-${i}`} style={{ width: `${(c / words.length) * 100}%` }} title={`${['未记忆','第1次记忆','第2次记忆','第3次记忆','已掌握'][i]}: ${c}`} /> : null)}</div><div className="memory-progress-labels">{memCounts.map((c, i) => <span key={i} className={`mem-label-${i}`}>{['未记忆','第1次','第2次','第3次','已掌握'][i]} <b>{c}</b></span>)}</div></div><div className="library-toolbar"><div className="vocab-tabs">{categoryTabs.map(t => <button key={t.id} className={category === t.id ? 'active' : ''} onClick={() => setCategory(t.id)}>{t.label}<em>{t.count}</em></button>)}</div><div className="mem-tabs">{memTabs.map(t => <button key={t.id} className={memFilter === t.id ? 'active' : ''} onClick={() => setMemFilter(t.id)}>{t.label}<em>{t.count}</em></button>)}</div><label><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索词汇..." /></label></div><div className="words-layout"><div className="word-grid">{visibleWords.map((key) => { const data = allData[key]; const memLevel = memoryLevels[key] || 0; return <button className={`word-card mem-card-${memLevel}`} key={key} onClick={() => setSelected(key)}><div className="word-card-top"><span className="type-label">{data.tag}</span>{memLevel > 0 && <span className={`mem-badge mem-${memLevel}`}>{memLevel >= 4 ? '✓' : `L${memLevel}`}</span>}<Volume2 size={16} onClick={(event) => { event.stopPropagation(); speak(data.word) }} /></div><strong>{data.word}</strong><span>{data.phonetic}</span><p>{data.meaning}</p><div className="word-card-bottom"><span>{data.root}</span><em>{data.rootMeaning.split(' · ')[0]}</em></div></button> })}</div></div>{selectedData && createPortal(<><div className="word-popup-overlay" onClick={() => setSelected(null)} /><div className="word-popup" onClick={(event) => event.stopPropagation()}><WordDetail data={selectedData} saved={saved} toggleSave={toggleSave} marks={marks} toggleMark={toggleMark} close={() => setSelected(null)} onDelete={importedVocab[selected] ? handleDelete : undefined} detailLoading={detailLoading} memoryLevels={memoryLevels} markMemorized={markMemorized} inVocab={!!importedVocab[selected]} /></div></>, document.body)}
+</div></div><div className="memory-progress"><div className="memory-progress-bar">{memCounts.map((c, i) => c > 0 ? <span key={i} className={`mem-level-${i}`} style={{ width: `${(c / words.length) * 100}%` }} title={`${['未记忆','第1次记忆','第2次记忆','第3次记忆','已掌握'][i]}: ${c}`} /> : null)}</div><div className="memory-progress-labels">{memCounts.map((c, i) => <span key={i} className={`mem-label-${i}`}>{['未记忆','第1次','第2次','第3次','已掌握'][i]} <b>{c}</b></span>)}</div></div><div className="library-toolbar"><div className="vocab-tabs">{categoryTabs.map(t => <button key={t.id} className={category === t.id ? 'active' : ''} onClick={() => setCategory(t.id)}>{t.label}<em>{t.count}</em></button>)}</div><div className="mem-tabs">{memTabs.map(t => <button key={t.id} className={memFilter === t.id ? 'active' : ''} onClick={() => setMemFilter(t.id)}>{t.label}<em>{t.count}</em></button>)}</div><label><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索词汇..." /></label></div><div className="words-layout"><div className="word-grid">{visibleWords.slice(0, shown).map((key) => { const data = allData[key]; const memLevel = memoryLevels[key] || 0; return <button className={`word-card mem-card-${memLevel}`} key={key} onClick={() => setSelected(key)}><div className="word-card-top"><span className="type-label">{data.tag}</span>{memLevel > 0 && <span className={`mem-badge mem-${memLevel}`}>{memLevel >= 4 ? '✓' : `L${memLevel}`}</span>}<Volume2 size={16} onClick={(event) => { event.stopPropagation(); speak(data.word) }} /></div><strong>{data.word}</strong><span>{data.phonetic}</span><p>{data.meaning}</p><div className="word-card-bottom"><span>{data.root}</span><em>{data.rootMeaning.split(' · ')[0]}</em></div></button> })}</div>{shown < visibleWords.length && <div className="ll-load-more"><button onClick={() => setShown(n => n + 96)}><Plus size={15} /> 再加载 96 个</button><span>已显示 {Math.min(shown, visibleWords.length)} / {visibleWords.length}</span></div>}</div>{selectedData && createPortal(<><div className="word-popup-overlay" onClick={() => setSelected(null)} /><div className="word-popup" onClick={(event) => event.stopPropagation()}><WordDetail data={selectedData} saved={saved} toggleSave={toggleSave} marks={marks} toggleMark={toggleMark} close={() => setSelected(null)} onDelete={importedVocab[selected] ? handleDelete : undefined} detailLoading={detailLoading} memoryLevels={memoryLevels} markMemorized={markMemorized} inVocab={!!importedVocab[selected]} /></div></>, document.body)}
     {showImport && <div className="import-overlay" onClick={() => setShowImport(false)}><div className="import-modal" onClick={(event) => event.stopPropagation()}><div className="import-modal-head"><span className="type-label orange">导入四六级词汇库</span><button className="close-button" onClick={() => setShowImport(false)}><X size={16} /></button></div><label className="file-label" htmlFor="vocab-file-input"><Upload size={14} /> 选择 .txt / .csv 文件</label><input id="vocab-file-input" type="file" accept=".txt,.csv" style={{ display: 'none' }} onChange={readImportFile} /><div className="import-sep">或直接粘贴</div><textarea value={importText} onChange={(event) => setImportText(event.target.value)} rows={8} placeholder={'每行一个词，例如：\nabandon /əˈbændən/ 放弃\n四级 vanish /ˈvænɪʃ/ 消失\n六级 anticipate /ænˈtɪsɪpeɪt/ 预期'} /><div className="import-modal-actions"><span className="import-tip">格式：单词 + 音标（可选，/.../ 包裹）+ 释义；行内写"四级/六级"会按级别标色</span><button className="primary" onClick={doImport}>确认导入</button></div></div></div>}
     {reviewMode && currentReviewData && createPortal(<><div className="review-overlay" onClick={() => setReviewMode(false)} /><div className="review-modal" onClick={(event) => event.stopPropagation()}>
       <div className="review-modal-head">
