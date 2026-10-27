@@ -18,6 +18,7 @@ const NUM_SELECTOR = [
   '.breakdown-count',
   '.xp-card strong',
   '.feedback-card strong',
+  '.plan-ring-label b',
 ].join(',')
 
 function bindSpotlight() {

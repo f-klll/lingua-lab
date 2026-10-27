@@ -192,6 +192,27 @@ const builtinArticles = [
     minutes: '6 min',
     text: 'Sleep is not a luxury or a sign of laziness. It is one of the most active and essential processes in the human body, and modern science is only beginning to understand how much we owe to it.\n\nDuring deep sleep, the brain consolidates memory. The experiences of the day are replayed, strengthened, and moved from fragile short-term storage into more permanent long-term memory. Students who sleep after studying consistently recall more than those who stay up late to cram — because the brain, not the textbook, does the learning.\n\nSleep also clears the waste that accumulates in the brain during waking hours. Recent research has revealed a "cleaning system" that operates mainly at night, flushing away proteins linked to conditions like Alzheimer\'s disease. When we sacrifice sleep for productivity, we are not just tired the next morning; we are quietly interfering with the brain\'s maintenance work.\n\nThe practical message is simple: treat sleep as part of the work, not the enemy of it. A well-rested mind is faster, sharper, and more creative than one running on caffeine and willpower. Sometimes the most productive thing you can do is to turn off the light.',
   },
+  {
+    id: 'cappuccino',
+    title: 'A short history of the cappuccino',
+    level: 'CET-4 · 文化随笔',
+    minutes: '4 min',
+    text: 'Few drinks carry as much history in a single cup as the cappuccino. Its name comes from the Capuchin friars, an order of Catholic monks whose brown robes resembled the color of espresso mixed with milk. The drink itself was born in the coffeehouses of Vienna in the eighteenth century, when Europeans first began adding milk to the bitter brew that arrived from the Ottoman Empire.\n\nThe modern cappuccino, however, is an Italian invention. After the espresso machine was perfected in the early twentieth century, Italian cafes developed a precise ritual: one third espresso, one third steamed milk, one third milk foam, served in a small white cup hardly larger than a human palm. Anything larger, Italians insist, is not a cappuccino at all but something closer to a latte.\n\nThe drink crossed the Atlantic with Italian immigrants and eventually conquered the world through global coffee chains, which stretched the recipe, enlarged the cups, and added flavors the original inventors never imagined. Purists complain, but the cappuccino has always been a drink that travels and adapts. In a sense, its history is the history of globalization itself — a monk\'s robe, an Ottoman import, an Italian ritual, and a worldwide morning habit, all gathered in one small cup.',
+  },
+  {
+    id: 'metro',
+    title: 'Underground cities: the story of metro systems',
+    level: 'CET-4 · 说明文',
+    minutes: '5 min',
+    text: 'Every morning, more than one hundred million people around the world descend into the earth, board a train, and emerge on the other side of their city. The metro is so ordinary that we rarely stop to consider how strange it is: an entire transport network buried beneath streets and buildings.\n\nThe first underground railway opened in London in 1863, when steam locomotives pulled wooden carriages through smoke-filled tunnels. Engineers believed no passenger would ever accept traveling below ground, yet the line was an immediate success. Other cities quickly followed: Budapest, Paris, New York, and eventually Tokyo, Moscow, and Mexico City, each adding its own character to the idea. Moscow\'s stations are palaces of marble and chandeliers, built to display the glory of a nation; Stockholm\'s tunnels are carved directly out of living rock and painted with murals.\n\nBuilding a metro remains one of the most complex challenges in engineering. Constructors must weave tunnels between building foundations, water pipes, and older lines without disturbing anything above. Yet the reward is enormous. A single metro line can move more people per hour than a twenty-lane highway, quietly and without a drop of gasoline. Beneath the noise of the city, these underground rivers of people never stop flowing.',
+  },
+  {
+    id: 'octopus',
+    title: 'The mind of an octopus',
+    level: 'CET-6 · 科普文',
+    minutes: '6 min',
+    text: 'If intelligent life evolved somewhere other than on land, it might look something like an octopus. With eight arms covered in independent suckers, three hearts, and blue blood, the octopus seems alien — and yet its intelligence is unmistakable.\n\nIn laboratories, octopuses have learned to open screw-top jars, navigate mazes, and recognize individual human faces. One famous octopus named Otto made a habit of juggling hermit crabs and short-circuiting the aquarium\'s bright lamp by squirting water at it, apparently for fun. Unlike most animals, an octopus carries much of its thinking outside its brain: roughly two thirds of its neurons are distributed through its arms, which can taste, touch, and make decisions on their own. Each arm is, in a sense, a small mind of its own.\n\nThis raises questions that scientists are still wrestling with. How does a creature so distant from us on the tree of life — a mollusk, more closely related to a snail than to a human — arrive at problem-solving, play, and perhaps even personality? Studying the octopus is like meeting an alien intelligence that grew up on Earth, and it reminds us that intelligence is not a single ladder with humans at the top, but many different experiments happening at once.',
+  },
 ]
 
 const wordData = {
@@ -1017,6 +1038,8 @@ function App() {
   })
   const [selectedWord, setSelectedWord] = useState(null)
   const [mobileNav, setMobileNav] = useState(false)
+  const [pageRipple, setPageRipple] = useState(null)
+  const rippleSeq = useRef(0)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
@@ -1323,10 +1346,25 @@ function App() {
     return stop
   }, [])
 
-  const switchPage = (id) => {
+  const switchPage = (id, event) => {
     setMobileNav(false)
     if (id === active) return
-    setActive(id)
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { setActive(id); return }
+    let x = window.innerWidth / 2
+    let y = window.innerHeight * 0.36
+    if (event && event.clientX) { x = event.clientX; y = event.clientY }
+    const r = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y)) + 28
+    const key = ++rippleSeq.current
+    setPageRipple({ x, y, r, key, out: false })
+    window.setTimeout(() => {
+      if (rippleSeq.current !== key) return
+      setActive(id)
+      setPageRipple(p => (p && p.key === key ? { ...p, out: true } : p))
+    }, 400)
+    window.setTimeout(() => {
+      if (rippleSeq.current !== key) return
+      setPageRipple(p => (p && p.key === key ? null : p))
+    }, 700)
   }
 
   const renderPage = () => {
@@ -1365,7 +1403,7 @@ function App() {
       <div className="brand"><div className="brand-mark"><span></span><span></span><span></span></div><div><strong>lingua<span>.</span>lab</strong><small>英语学习实验室</small></div></div>
       <button className="sidebar-toggle" onClick={() => setSidebarCollapsed(!sidebarCollapsed)}><Menu size={20} /></button>
       <div className="nav-label">学习空间</div>
-      <nav className={sidebarCollapsed ? 'collapsed' : ''}>{navItems.map(({ id, label, icon: Icon }) => <button key={id} className={active === id ? 'nav-item active' : 'nav-item'} onClick={() => switchPage(id)}><Icon size={18} strokeWidth={1.8} /><span>{label}</span>{id === 'words' && <b>{saved.length}</b>}</button>)}</nav>
+      <nav className={sidebarCollapsed ? 'collapsed' : ''}>{navItems.map(({ id, label, icon: Icon }) => <button key={id} className={active === id ? 'nav-item active' : 'nav-item'} onClick={(event) => switchPage(id, event)}><Icon size={18} strokeWidth={1.8} /><span>{label}</span>{id === 'words' && <b>{saved.length}</b>}</button>)}</nav>
       <div className="sidebar-bottom"><div className="streak"><Flame size={getFlameProps(flameState.streak).size} color={getFlameProps(flameState.streak).color} className={getFlameProps(flameState.streak).burnClass} fill={getFlameProps(flameState.streak).color} style={{filter: getFlameProps(flameState.streak).glow !== 'none' ? `drop-shadow(${getFlameProps(flameState.streak).glow})` : 'none'}} /><div><strong>连续 {flameState.streak} 天</strong><small>{flameState.isBroken ? `⚠ 中断中，今日需记 ${flameState.wordsNeededToday} 词续火` : flameState.streak >= 15 ? '燃烧正旺！' : flameState.streak >= 7 ? '火焰跳动中' : '保持你的节奏'}</small></div><Zap size={15} /></div><button className="settings" onClick={() => setShowSettings(true)}><Settings2 size={18} /> 学习设置</button></div>
     </aside>
     <main className="main-area">
@@ -1377,6 +1415,7 @@ function App() {
     {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
     {showQr && <QrModal onClose={() => setShowQr(false)} />}
     {showLogin && <LoginModal onLogin={handleLoginSuccess} onClose={() => setShowLogin(false)} />}
+    {pageRipple && <div className={`ll-ripple ${pageRipple.out ? 'out' : 'in'}`} style={{ '--ripple-x': pageRipple.x + 'px', '--ripple-y': pageRipple.y + 'px', '--ripple-r': pageRipple.r + 'px' }} aria-hidden="true"><i /></div>}
   </div>
 }
 
@@ -1892,6 +1931,26 @@ function TodayPage({ setActive, saved, setToast, flameState, dailyStats, todayKe
   const [xpLevelSnapshot, setXpLevelSnapshot] = useState(zapProps.level)
   const [levelUpAnim, setLevelUpAnim] = useState(false)
 
+  // ===== 今日清单：勾选联动（环形进度 + 数字 + 卡片底色一起变） =====
+  const CHECK_KEY = 'daily_checklist'
+  const planItems = [
+    { id: 'read', title: '读一篇短文', desc: '在语境里遇见新词' },
+    { id: 'words', title: '标记 3 个新词', desc: '点词 → 加入词汇库' },
+    { id: 'review', title: '复习 5 个旧词', desc: '在词汇库里过一遍' },
+  ]
+  const [checks, setChecks] = useState(() => {
+    try {
+      const savedPlan = JSON.parse(localStorage.getItem(CHECK_KEY) || '{}')
+      if (savedPlan.date === todayKey && Array.isArray(savedPlan.items) && savedPlan.items.length === planItems.length) return savedPlan.items
+    } catch (e) { /* ignore */ }
+    return planItems.map(() => false)
+  })
+  useEffect(() => {
+    try { localStorage.setItem(CHECK_KEY, JSON.stringify({ date: todayKey, items: checks })) } catch (e) { /* ignore */ }
+  }, [checks, todayKey])
+  const doneCount = checks.filter(Boolean).length
+  const toggleCheck = (index) => setChecks(prev => prev.map((v, i) => i === index ? !v : v))
+
   // ===== 记忆反馈：今日/本周/本月记住的单词 =====
   const getWeekStartKey = () => {
     const now = new Date()
@@ -1939,7 +1998,33 @@ function TodayPage({ setActive, saved, setToast, flameState, dailyStats, todayKe
   }
   selfLeaderboard.sort((a, b) => b.words - a.words)
 
-  return <div className="today-page fade-in"><section className="study-status"><div><span className="eyebrow">{weekday} / STUDY PLAN</span><strong>今天先完成一件最重要的事。</strong></div><div className="status-metrics"><span><b>{todayStats.minutes || 0}</b> min</span><span><b>3</b> tasks</span><span><b>{goalPct}%</b> done</span></div></section><section className="method-strip"><Lightbulb size={20} /><div><strong>今日方法：词不是孤岛</strong><span>把新词放进一个画面，再放进一句话。语境会替你记住它。</span></div><button onClick={() => setActive('roots')}>去词根实验室 <ArrowUpRight size={15} /></button></section>
+  return <div className="today-page fade-in"><section className="study-status"><div><span className="eyebrow">{weekday} / STUDY PLAN</span><strong>今天先完成一件最重要的事。</strong></div><div className="status-metrics"><span><b>{todayStats.minutes || 0}</b> min</span><span><b>{doneCount}</b> tasks</span><span><b>{goalPct}%</b> done</span></div></section><section className="method-strip"><Lightbulb size={20} /><div><strong>今日方法：词不是孤岛</strong><span>把新词放进一个画面，再放进一句话。语境会替你记住它。</span></div><button onClick={() => setActive('roots')}>去词根实验室 <ArrowUpRight size={15} /></button></section>
+
+    {/* 今日清单：勾选联动 */}
+    <section className={`dash-panel plan-panel plan-${doneCount}`}>
+      <div className="plan-ring-wrap">
+        <svg className="plan-ring" viewBox="0 0 84 84" aria-hidden="true">
+          <circle className="plan-ring-bg" cx="42" cy="42" r="34" />
+          <circle className="plan-ring-fill" cx="42" cy="42" r="34" style={{ strokeDashoffset: 213.6 * (1 - doneCount / planItems.length) }} />
+        </svg>
+        <div className="plan-ring-label"><b>{doneCount}</b><span>/{planItems.length}</span></div>
+      </div>
+      <div className="plan-main">
+        <div className="plan-head">
+          <div><span className="type-label">DAILY CHECKLIST</span><h3>{doneCount === planItems.length ? '三个小目标都完成了' : '今天的三个小目标'}</h3></div>
+          <span className="plan-hint">{doneCount === planItems.length ? '整张卡跟着亮起来。' : '勾一件，整张卡跟着变。'}</span>
+        </div>
+        <div className="plan-list">
+          {planItems.map((item, i) => (
+            <button key={item.id} className={`plan-item${checks[i] ? ' on' : ''}`} onClick={() => toggleCheck(i)} aria-pressed={checks[i]}>
+              <span className="plan-box"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" /></svg></span>
+              <span className="plan-copy"><strong>{item.title}</strong><small>{item.desc}</small></span>
+              <span className="plan-state">{checks[i] ? '已完成' : '待完成'}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
 
     {/* 记忆反馈：今日/本周/本月记住的单词 */}
     <section className="dash-panel memory-feedback today-section">
@@ -2049,11 +2134,238 @@ function FullscreenImage({ src, alt, onClose }) {
   </div>
 }
 
+// 惯性滚轮：拖动/滚轮甩动，逐渐减速后吸附到刻度
+function CountWheel({ value, min = 1, max = 99, onChange, unit }) {
+  const ITEM = 26
+  const [pos, setPos] = useState(value)
+  const [dragging, setDragging] = useState(false)
+  const boxRef = useRef(null)
+  const stateRef = useRef({ down: false, startY: 0, startPos: value, lastY: 0, lastT: 0, vel: 0, raf: 0 })
+
+  useEffect(() => {
+    if (!stateRef.current.down) setPos(value)
+  }, [value])
+  useEffect(() => () => cancelAnimationFrame(stateRef.current.raf), [])
+
+  const clamp = (v) => Math.min(max, Math.max(min, v))
+
+  const settle = (from, velocity) => {
+    cancelAnimationFrame(stateRef.current.raf)
+    let p = from
+    let v = Math.max(-0.09, Math.min(0.09, velocity))
+    const step = () => {
+      v *= 0.92
+      p += v * 16
+      if (p < min - 0.6) { p = min - 0.6; v = Math.abs(v) * 0.5 }
+      if (p > max + 0.6) { p = max + 0.6; v = -Math.abs(v) * 0.5 }
+      if (Math.abs(v) < 0.0015) {
+        const snapped = clamp(Math.round(p))
+        setPos(snapped)
+        onChange(snapped)
+        setDragging(false)
+        return
+      }
+      setPos(p)
+      stateRef.current.raf = requestAnimationFrame(step)
+    }
+    stateRef.current.raf = requestAnimationFrame(step)
+  }
+
+  const onDown = (event) => {
+    cancelAnimationFrame(stateRef.current.raf)
+    stateRef.current = {
+      ...stateRef.current,
+      down: true,
+      startY: event.clientY,
+      startPos: pos,
+      lastY: event.clientY,
+      lastT: performance.now(),
+      vel: 0,
+    }
+    setDragging(true)
+    try { event.currentTarget.setPointerCapture(event.pointerId) } catch (e) { /* ignore */ }
+  }
+  const onMove = (event) => {
+    const s = stateRef.current
+    if (!s.down) return
+    const p = s.startPos - (event.clientY - s.startY) / ITEM
+    setPos(Math.min(max + 0.6, Math.max(min - 0.6, p)))
+    const now = performance.now()
+    const dt = Math.max(1, now - s.lastT)
+    s.vel = -(event.clientY - s.lastY) / ITEM / dt
+    s.lastY = event.clientY
+    s.lastT = now
+  }
+  const onUp = () => {
+    const s = stateRef.current
+    if (!s.down) return
+    s.down = false
+    settle(pos, s.vel)
+  }
+
+  useEffect(() => {
+    const el = boxRef.current
+    if (!el) return
+    const onWheel = (event) => {
+      event.preventDefault()
+      const next = clamp(Math.round(pos) + (event.deltaY > 0 ? 1 : -1))
+      if (next !== Math.round(pos)) {
+        setPos(next)
+        onChange(next)
+      }
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [pos, onChange, min, max])
+
+  const base = Math.floor(pos)
+  const items = []
+  for (let i = base - 2; i <= base + 2; i++) {
+    if (i < min || i > max) continue
+    const d = i - pos
+    items.push(
+      <span
+        key={i}
+        className={Math.abs(d) < 0.5 ? 'near' : ''}
+        style={{ transform: `translateY(${d * ITEM}px)`, opacity: Math.max(0, 1 - Math.abs(d) * 0.45) }}
+      >{i}</span>
+    )
+  }
+
+  return <>
+    <div
+      className={`count-wheel${dragging ? ' dragging' : ''}`}
+      ref={boxRef}
+      onPointerDown={onDown}
+      onPointerMove={onMove}
+      onPointerUp={onUp}
+      onPointerCancel={onUp}
+      onKeyDown={(event) => {
+        if (event.key === 'ArrowUp') { event.preventDefault(); onChange(clamp(value + 1)) }
+        if (event.key === 'ArrowDown') { event.preventDefault(); onChange(clamp(value - 1)) }
+      }}
+      role="spinbutton"
+      tabIndex={0}
+      aria-valuemin={min}
+      aria-valuemax={max}
+      aria-valuenow={Math.round(pos)}
+      aria-label={`每次复习数量，当前 ${Math.round(pos)}`}
+    >
+      <div className="count-wheel-window">{items}</div>
+    </div>
+    <em className="count-wheel-unit">{unit}</em>
+  </>
+}
+
+// 阅读导航轨：书签卡片沿轨道吸附段落，进度线随之画出
+function ReadingRail({ articleRef, version }) {
+  const [count, setCount] = useState(0)
+  const [active, setActive] = useState(0)
+  const [dragging, setDragging] = useState(false)
+  const railRef = useRef(null)
+  const dragRef = useRef({ down: false, index: 0 })
+
+  const paragraphs = () => {
+    const article = articleRef.current
+    return article ? [...article.querySelectorAll('p')] : []
+  }
+
+  useEffect(() => {
+    setCount(paragraphs().length)
+    setActive(0)
+  }, [version])
+
+  useEffect(() => {
+    const onScroll = () => {
+      if (dragRef.current.down) return
+      const ps = paragraphs()
+      if (!ps.length) return
+      const mark = window.innerHeight * 0.36
+      let next = 0
+      for (let i = 0; i < ps.length; i++) {
+        if (ps[i].getBoundingClientRect().top <= mark) next = i
+      }
+      setActive(next)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [version])
+
+  const jumpTo = (index) => {
+    const target = paragraphs()[index]
+    if (!target) return
+    const y = target.getBoundingClientRect().top + window.scrollY - 110
+    window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' })
+  }
+
+  const indexFromEvent = (event) => {
+    const rect = railRef.current.getBoundingClientRect()
+    const ratio = Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height))
+    return Math.round(ratio * Math.max(0, count - 1))
+  }
+
+  const onPointerDown = (event) => {
+    event.preventDefault()
+    dragRef.current = { down: true, index: active }
+    setDragging(true)
+    try { event.currentTarget.setPointerCapture(event.pointerId) } catch (e) { /* ignore */ }
+  }
+  const onPointerMove = (event) => {
+    if (!dragRef.current.down) return
+    const index = indexFromEvent(event)
+    dragRef.current.index = index
+    setActive(index)
+  }
+  const onPointerUp = () => {
+    if (!dragRef.current.down) return
+    const index = dragRef.current.index
+    dragRef.current.down = false
+    setDragging(false)
+    setActive(index)
+    jumpTo(index)
+  }
+
+  if (count < 2) return null
+  const ratio = active / (count - 1)
+  const step = Math.ceil(count / 12)
+  const tickIndices = []
+  for (let i = 0; i < count; i += step) tickIndices.push(i)
+  if (tickIndices[tickIndices.length - 1] !== count - 1) tickIndices.push(count - 1)
+
+  return createPortal(<div className={`reading-rail${dragging ? ' dragging' : ''}`} ref={railRef}>
+    <div className="rail-track" />
+    <div className="rail-progress" style={{ height: `${ratio * 100}%` }} />
+    {tickIndices.map((i) => (
+      <button
+        key={i}
+        className={`rail-tick${i <= active ? ' passed' : ''}${i === active ? ' active' : ''}`}
+        style={{ top: `${(i / (count - 1)) * 100}%` }}
+        onClick={() => { setActive(i); jumpTo(i) }}
+        tabIndex={-1}
+        aria-label={`跳到第 ${i + 1} 段`}
+      />
+    ))}
+    <button
+      className="rail-knob"
+      style={{ top: `${ratio * 100}%` }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      aria-label={`当前第 ${active + 1} 段，共 ${count} 段，拖动可跳转`}
+    >
+      <b>{active + 1}</b><span>/{count}</span>
+    </button>
+  </div>, document.body)
+}
+
 function ReadingPage({ selectedWord, setSelectedWord, saved, toggleSave, setToast, importedVocab, memoryLevels, markMemorized, onArticleStart }) {
   const articleRef = useRef(null)
   const [marks, setMarks] = useState([])
   const [customText, setCustomText] = useState(() => { try { return localStorage.getItem('reading_custom_text') || '' } catch (e) { return '' } })
   const [customTitle, setCustomTitle] = useState(() => { try { return localStorage.getItem('reading_custom_title') || '' } catch (e) { return '' } })
+  const [customMeta, setCustomMeta] = useState(null)
   const [customArticles, setCustomArticles] = useState(() => { try { return JSON.parse(localStorage.getItem('custom_articles') || '[]') } catch (e) { return [] } })
   const [showImport, setShowImport] = useState(false)
   const [importText, setImportText] = useState('')
@@ -2084,6 +2396,7 @@ function ReadingPage({ selectedWord, setSelectedWord, saved, toggleSave, setToas
   const loadBuiltin = (article) => {
     setCustomText(article.text)
     setCustomTitle(article.title)
+    setCustomMeta({ level: article.level, minutes: article.minutes })
     setMarks([])
     setSelectedWord(null)
     setPdfData(null)
@@ -2099,6 +2412,7 @@ function ReadingPage({ selectedWord, setSelectedWord, saved, toggleSave, setToas
 
   const loadCustomArticle = (article) => {
     setCustomText(article.text)
+    setCustomMeta(null)
     setCustomTitle(article.title)
     setMarks([])
     setSelectedWord(null)
@@ -2346,6 +2660,7 @@ function ReadingPage({ selectedWord, setSelectedWord, saved, toggleSave, setToas
   const clearCustom = () => {
     setCustomText('')
     setCustomTitle('')
+    setCustomMeta(null)
     setMarks([])
     setSelectedWord(null)
     setPdfData(null)
@@ -2385,7 +2700,7 @@ function ReadingPage({ selectedWord, setSelectedWord, saved, toggleSave, setToas
     article.addEventListener('click', handleArticleClick)
     return () => { article.removeEventListener('click', handleArticleClick); if (clickTimer.current) clearTimeout(clickTimer.current) }
   }, [setSelectedWord])
-  return <div className="reading-page fade-in"><div className="reading-toolbar"><div><span className="type-label">ARTICLE 01 · CET-6</span><h1>{customText ? (customTitle || '导入的英文读物') : 'The quiet force of curiosity'}</h1><p>{customText ? '你导入的英文文本，点一下单词就能看释义和发音。' : '为什么我们会提问，以及问题如何改变我们看世界的方式。'}</p></div><div className="article-tools"><span><Clock3 size={15} /> {customText ? `${paragraphs.length} 段` : '6 min read'}</span><span className="mark-count-badge"><Highlighter size={13} /> 已标记 <b>{marks.length}</b> 个词</span><button className="import-text-btn" onClick={() => setShowImport(true)}><Upload size={15} /> 导入文本</button><span className="read-menu-wrap"><button className={`import-text-btn ${showLibrary ? 'active' : ''}`} onClick={() => setShowLibrary(!showLibrary)}><Library size={15} /> 阅读文库</button>{showLibrary && <><div className="read-menu-overlay" onClick={() => setShowLibrary(false)} /><div className="read-menu library-menu"><div className="read-menu-title">阅读文库</div>{customArticles.length > 0 && <><div className="library-section-title">我的导入</div>{customArticles.map((a) => <div key={a.id} className="library-item-wrap"><button className="library-item" onClick={() => loadCustomArticle(a)}><span><strong>{a.title}</strong><small>{a.level} · {a.minutes}</small></span><ArrowUpRight size={14} /></button><button className="library-delete" onClick={(e) => { e.stopPropagation(); deleteCustomArticle(a.id) }}><X size={12} /></button></div>)}</>}{customArticles.length > 0 && <div className="library-section-title">内置文章</div>}{builtinArticles.map((a) => <button key={a.id} className="library-item" onClick={() => loadBuiltin(a)}><span><strong>{a.title}</strong><small>{a.level} · {a.minutes}</small></span><ArrowUpRight size={14} /></button>)}{customText && <button className="library-item" onClick={clearCustom}><span><strong>返回默认文章</strong><small>The quiet force of curiosity</small></span><ArrowUpRight size={14} /></button>}</div></>}</span><button className="import-text-btn" onClick={() => imageInputRef.current && imageInputRef.current.click()}><ScanText size={15} /> 图片翻译</button><input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageImport} style={{ display: 'none' }} />{pdfData && <button className="import-text-btn" onClick={openPreview}><FileImage size={15} /> 查看原页</button>}{pdfData && <button className={`import-text-btn ${pdfNativeMode ? 'primary' : ''}`} onClick={() => setPdfNativeMode(!pdfNativeMode)}>{pdfNativeMode ? '纯文本模式' : '原生PDF'}</button>}{customText && <button className="import-text-btn ghost" onClick={clearCustom}>默认文章</button>}<button className={`icon-button ${readingAloud ? 'active' : ''}`} onClick={readArticle}>{readingAloud ? <Volume2 size={17} /> : <Headphones size={17} />}</button><span className="read-menu-wrap"><button className={`icon-button ${showReadMenu ? 'active' : ''}`} onClick={() => setShowReadMenu(!showReadMenu)}><Settings2 size={17} /></button>{showReadMenu && <><div className="read-menu-overlay" onClick={() => setShowReadMenu(false)} /><div className="read-menu"><div className="read-menu-title">阅读设置</div><div className="read-menu-row"><span>正文字号</span><div className="rate-options">{[{ v: 'sm', l: '小' }, { v: 'md', l: '中' }, { v: 'lg', l: '大' }].map((o) => <button key={o.v} className={readingFont === o.v ? 'active' : ''} onClick={() => setReadingFont(o.v)}>{o.l}</button>)}</div></div></div></>}</span></div></div><div className="reading-layout"><article className={`article reading-font-${readingFont}`} ref={articleRef}><div className="article-meta">{customText ? <><span>导入阅读</span><span>·</span><span>{customTitle || '未命名文本'}</span><span>·</span><span>{paragraphs.length} 段</span></> : <><span>Reading Lab</span><span>·</span><span>难度：六级进阶</span><span>·</span><span>已读 42%</span></>}</div>{imageImport ? <div style={{padding: '16px 0'}}><ImageTranslator src={imageImport} /></div> : (pdfNativeMode && pdfData ? <div style={{padding: '16px 0'}}><PdfViewer buffer={pdfData.buffer} onWordClick={(w) => setSelectedWord(w)} /></div> : (customText ? (pdfPages ? pdfPages.map((pg, i) => <div key={i} className="pdf-page-block">{pg.text.split(/\n+/).map((para) => para.trim()).filter(Boolean).map((para, j) => <p key={j} className={i === 0 && j === 0 ? 'dropcap' : ''}><ArticleText text={para} marks={marks} setSelectedWord={setSelectedWord} extraDict={importedVocab} /></p>)}{pg.thumb ? <figure className="inline-page-fig" onClick={() => openPagePreview(i + 1)}><img src={pg.thumb} alt={'第 ' + (i + 1) + ' 页'} /><figcaption>第 {i + 1} 页 · 点击查看原图</figcaption></figure> : null}</div>) : paragraphs.map((p, i) => <p key={i} className={i === 0 ? 'dropcap' : ''}><ArticleText text={p} marks={marks} setSelectedWord={setSelectedWord} extraDict={importedVocab} /></p>)) : <><p className="dropcap">{articleWords.map((item, index) => {
+  return <div className="reading-page fade-in"><div className="reading-toolbar"><div><span className="type-label">ARTICLE · {customMeta ? customMeta.level.split(' · ')[0] : 'CET-6'}</span><h1>{customText ? (customTitle || '导入的英文读物') : 'The quiet force of curiosity'}</h1><p>{customText ? '你导入的英文文本，点一下单词就能看释义和发音。' : '为什么我们会提问，以及问题如何改变我们看世界的方式。'}</p></div><div className="article-tools"><span><Clock3 size={15} /> {customMeta ? customMeta.minutes : (customText ? `${paragraphs.length} 段` : '6 min read')}</span><span className="mark-count-badge"><Highlighter size={13} /> 已标记 <b>{marks.length}</b> 个词</span><button className="import-text-btn" onClick={() => setShowImport(true)}><Upload size={15} /> 导入文本</button><span className="read-menu-wrap"><button className={`import-text-btn ${showLibrary ? 'active' : ''}`} onClick={() => setShowLibrary(!showLibrary)}><Library size={15} /> 阅读文库</button>{showLibrary && <><div className="read-menu-overlay" onClick={() => setShowLibrary(false)} /><div className="read-menu library-menu"><div className="read-menu-title">阅读文库</div>{customArticles.length > 0 && <><div className="library-section-title">我的导入</div>{customArticles.map((a) => <div key={a.id} className="library-item-wrap"><button className="library-item" onClick={() => loadCustomArticle(a)}><span><strong>{a.title}</strong><small>{a.level} · {a.minutes}</small></span><ArrowUpRight size={14} /></button><button className="library-delete" onClick={(e) => { e.stopPropagation(); deleteCustomArticle(a.id) }}><X size={12} /></button></div>)}</>}{customArticles.length > 0 && <div className="library-section-title">内置文章</div>}{builtinArticles.map((a) => <button key={a.id} className="library-item" onClick={() => loadBuiltin(a)}><span><strong>{a.title}</strong><small>{a.level} · {a.minutes}</small></span><ArrowUpRight size={14} /></button>)}{customText && <button className="library-item" onClick={clearCustom}><span><strong>返回默认文章</strong><small>The quiet force of curiosity</small></span><ArrowUpRight size={14} /></button>}</div></>}</span><button className="import-text-btn" onClick={() => imageInputRef.current && imageInputRef.current.click()}><ScanText size={15} /> 图片翻译</button><input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageImport} style={{ display: 'none' }} />{pdfData && <button className="import-text-btn" onClick={openPreview}><FileImage size={15} /> 查看原页</button>}{pdfData && <button className={`import-text-btn ${pdfNativeMode ? 'primary' : ''}`} onClick={() => setPdfNativeMode(!pdfNativeMode)}>{pdfNativeMode ? '纯文本模式' : '原生PDF'}</button>}{customText && <button className="import-text-btn ghost" onClick={clearCustom}>默认文章</button>}<button className={`icon-button ${readingAloud ? 'active' : ''}`} onClick={readArticle}>{readingAloud ? <Volume2 size={17} /> : <Headphones size={17} />}</button><span className="read-menu-wrap"><button className={`icon-button ${showReadMenu ? 'active' : ''}`} onClick={() => setShowReadMenu(!showReadMenu)}><Settings2 size={17} /></button>{showReadMenu && <><div className="read-menu-overlay" onClick={() => setShowReadMenu(false)} /><div className="read-menu"><div className="read-menu-title">阅读设置</div><div className="read-menu-row"><span>正文字号</span><div className="rate-options">{[{ v: 'sm', l: '小' }, { v: 'md', l: '中' }, { v: 'lg', l: '大' }].map((o) => <button key={o.v} className={readingFont === o.v ? 'active' : ''} onClick={() => setReadingFont(o.v)}>{o.l}</button>)}</div></div></div></>}</span></div></div><ReadingRail articleRef={articleRef} version={`${customText ? customText.length : 0}-${paragraphs.length}-${pdfPages ? pdfPages.length : 0}`} /><div className="reading-layout"><article className={`article reading-font-${readingFont}`} ref={articleRef}><div className="article-meta">{customText ? <><span>{customMeta ? 'Reading Lab' : '导入阅读'}</span><span>·</span><span>{customMeta ? customMeta.level : (customTitle || '未命名文本')}</span><span>·</span><span>{paragraphs.length} 段</span></> : <><span>Reading Lab</span><span>·</span><span>难度：六级进阶</span><span>·</span><span>已读 42%</span></>}</div>{imageImport ? <div style={{padding: '16px 0'}}><ImageTranslator src={imageImport} /></div> : (pdfNativeMode && pdfData ? <div style={{padding: '16px 0'}}><PdfViewer buffer={pdfData.buffer} onWordClick={(w) => setSelectedWord(w)} /></div> : (customText ? (pdfPages ? pdfPages.map((pg, i) => <div key={i} className="pdf-page-block">{pg.text.split(/\n+/).map((para) => para.trim()).filter(Boolean).map((para, j) => <p key={j} className={i === 0 && j === 0 ? 'dropcap' : ''}><ArticleText text={para} marks={marks} setSelectedWord={setSelectedWord} extraDict={importedVocab} /></p>)}{pg.thumb ? <figure className="inline-page-fig" onClick={() => openPagePreview(i + 1)}><img src={pg.thumb} alt={'第 ' + (i + 1) + ' 页'} /><figcaption>第 {i + 1} 页 · 点击查看原图</figcaption></figure> : null}</div>) : paragraphs.map((p, i) => <p key={i} className={i === 0 ? 'dropcap' : ''}><ArticleText text={p} marks={marks} setSelectedWord={setSelectedWord} extraDict={importedVocab} /></p>)) : <><p className="dropcap">{articleWords.map((item, index) => {
     if (!item.key) return <React.Fragment key={index}>{item.text} </React.Fragment>
     const mark = marks.find(m => m.key === item.key)
     const marked = !!mark
@@ -2410,13 +2725,33 @@ function posToCN(pos) {
   return map[lower] || (pos + '.')
 }
 
+// 把 breakdown 拆成分段，并补上未被词缀覆盖的中间部分（如 ability 的 il）
+function wordMorphParts(word, breakdown) {
+  const clean = (word || '').toLowerCase().replace(/[^a-z]/g, '')
+  const parts = String(breakdown || '').split(' + ').map(s => s.trim()).filter(Boolean)
+  if (!parts.length) return null
+  // 按词形顺序还原：前缀在头、后缀在尾，剩下没覆盖的中间部分作为词根段插入
+  const strips = parts.map(p => p.split('（')[0].replace(/-/g, ''))
+  const lastStrip = strips[strips.length - 1]
+  let body = clean
+  if (strips[0] && body.startsWith(strips[0])) body = body.slice(strips[0].length)
+  if (lastStrip && body.endsWith(lastStrip)) body = body.slice(0, body.length - lastStrip.length)
+  const out = []
+  if (strips[0] && clean.startsWith(strips[0])) out.push(parts[0])
+  if (body && !strips.includes(body)) out.push(body)
+  for (let i = 1; i < parts.length; i++) out.push(parts[i])
+  if (!out.length) return null
+  return out
+}
+
 function WordDetail({ data, saved, toggleSave, marks, toggleMark, close, onDelete, onlineMeaning, meaningLoading, detailLoading, memoryLevels, markMemorized, inVocab }) {
+  const [justDone, setJustDone] = useState(false)
   const marked = marks.some(m => m.key === data.word)
   const phoneticText = data.phonetic || (detailLoading ? '查询音标中…' : '点击 🔊 播放发音')
   const exampleText = data.example || (detailLoading ? '查询例句中…' : '暂无例句，在阅读中遇见它时可加入情景复习。')
   const memLevel = memoryLevels ? (memoryLevels[data.word] || 0) : 0
   const memLabel = memLevel >= 4 ? '已掌握 ✓✓✓✓' : memLevel > 0 ? `第${memLevel}次记忆 ${'✓'.repeat(memLevel)} · 再记一次` : '标记为已记忆'
-  return <div className="word-detail"><div className="detail-header"><span className="type-label orange">{data.tag}</span><button className="close-button" onClick={close}><X size={16} /></button></div><div className="word-title-row"><h2>{data.word}</h2>{!inVocab && <button className={marked ? 'mark-word-button active' : 'mark-word-button'} onClick={() => toggleMark(data.word)}>{marked ? <><X size={15} /> 取消标记</> : <><Highlighter size={15} /> 标记这个词</>}</button>}</div><div className="pronounce">{data.partOfSpeech && <span className="pos-tag">{posToCN(data.partOfSpeech)}</span>}<span className={detailLoading && !data.phonetic ? 'lookup-loading' : ''}>{phoneticText}</span><button onClick={() => speak(data.word)}><Volume2 size={17} /></button></div>{meaningLoading ? <p className="meaning"><span className="lookup-loading">正在查询释义…</span></p> : <p className="meaning">{onlineMeaning || data.meaning}</p>}<div className="stress"><span>重音</span><b>{data.stress}</b></div>{data.breakdown && <div className="breakdown-box"><span>词根词缀 / MORPHEMES</span><p>{data.breakdown}</p></div>}<div className="root-box"><span>词根 / ROOT</span><strong>{data.root}</strong><small>{data.rootMeaning}</small></div><div className="scene-box"><span>情景记忆 / SCENE</span><p>{data.scene}</p></div><div className="example"><span>EXAMPLE</span><p className={detailLoading && !data.example ? 'lookup-loading' : ''}>{exampleText}</p></div><button className={`memorize-button mem-level-${memLevel}${memLevel >= 4 ? ' mastered' : ''}`} onClick={() => { if (markMemorized && memLevel < 4) { markMemorized(data.word); close(); } }} disabled={memLevel >= 4}><span className="mem-dots">{'●'.repeat(memLevel)}{'○'.repeat(4 - memLevel)}</span>{memLabel}</button>{!inVocab && <button className={saved.includes(data.word) ? 'save-button saved-button' : 'save-button'} onClick={() => toggleSave(data.word, data)}>{saved.includes(data.word) ? <><Check size={16} /> 已在词汇库</> : <><Plus size={16} /> 加入词汇库</>}</button>}{onDelete && <button className="delete-button" onClick={() => onDelete(data.word)}><Trash2 size={15} /> 删除这个词</button>}</div>
+  return <div className="word-detail"><div className="detail-header"><span className="type-label orange">{data.tag}</span><button className="close-button" onClick={close}><X size={16} /></button></div><div className="word-title-row"><h2>{(() => { const parts = wordMorphParts(data.word, data.breakdown); return parts && parts.length > 1 ? parts.map((part, i) => { const a = part.split('（')[0]; const cls = (i === 0 && /-$/.test(a)) ? 'm-pref' : (i === parts.length - 1 && /^-/.test(a)) ? 'm-suf' : 'm-root'; return <span key={i} className={`wd-morph ${cls}`}>{a}</span> }) : data.word })()}</h2>{!inVocab && <button className={marked ? 'mark-word-button active' : 'mark-word-button'} onClick={() => toggleMark(data.word)}>{marked ? <><X size={15} /> 取消标记</> : <><Highlighter size={15} /> 标记这个词</>}</button>}</div><div className="pronounce">{data.partOfSpeech && <span className="pos-tag">{posToCN(data.partOfSpeech)}</span>}<span className={detailLoading && !data.phonetic ? 'lookup-loading' : ''}>{phoneticText}</span><button onClick={() => speak(data.word)}><Volume2 size={17} /></button></div>{meaningLoading ? <p className="meaning"><span className="lookup-loading">正在查询释义…</span></p> : <p className="meaning">{onlineMeaning || data.meaning}</p>}<div className="stress"><span>重音</span><b>{data.stress}</b></div>{data.breakdown && <div className="breakdown-box"><span>词根词缀 / MORPHEMES</span><p className="morph-chips">{data.breakdown.split(' + ').map((part, i) => <span className={`morph-chip ${/前缀|^.*?-$/.test(part.trim()) ? '' : /（名词|（动词|（形容词|（副词/.test(part) ? 'morph-suffix' : 'morph-root'}`}>{part}</span>)}</p></div>}<div className="root-box"><span>词根 / ROOT</span><strong>{data.root}</strong><small>{data.rootMeaning}</small></div><div className="scene-box"><span>情景记忆 / SCENE</span><p>{data.scene}</p></div><div className="example"><span>EXAMPLE</span><p className={detailLoading && !data.example ? 'lookup-loading' : ''}>{exampleText}</p></div><button className={`memorize-button mem-level-${memLevel}${memLevel >= 4 ? ' mastered' : ''}${justDone ? ' is-done' : ''}`} onClick={() => { if (markMemorized && memLevel < 4 && !justDone) { setJustDone(true); markMemorized(data.word); window.setTimeout(close, 900); } }} disabled={memLevel >= 4 || justDone}>{justDone ? <svg className="memorize-check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7" /></svg> : <><span className="mem-dots">{'●'.repeat(memLevel)}{'○'.repeat(4 - memLevel)}</span>{memLabel}</>}</button>{!inVocab && <button className={saved.includes(data.word) ? 'save-button saved-button' : 'save-button'} onClick={() => toggleSave(data.word, data)}>{saved.includes(data.word) ? <><Check size={16} /> 已在词汇库</> : <><Plus size={16} /> 加入词汇库</>}</button>}{onDelete && <button className="delete-button" onClick={() => onDelete(data.word)}><Trash2 size={15} /> 删除这个词</button>}</div>
 }
 
 // ===== 融合阅读：导入四六级词汇 + 小说，自动标注融合 =====
@@ -3172,7 +3507,7 @@ function WordsPage({ saved, toggleSave, importedVocab, readingVocab, addImported
     <span className="review-settings-label">每次复习</span>
     <div className="review-count-adjuster">
       <button className="count-btn" onClick={() => setReviewCount(c => Math.max(1, c - 1))} disabled={reviewCount <= 1}>−</button>
-      <span className="count-value"><b>{reviewCount}</b> 词</span>
+      <CountWheel value={reviewCount} min={1} max={99} onChange={setReviewCount} unit="词" />
       <button className="count-btn" onClick={() => setReviewCount(c => c + 1)}>+</button>
     </div>
     <span className="review-l1-total">可选 {Object.entries(memoryLevels).filter(([_,v]) => reviewLevels.includes(v)).length} 个</span>
@@ -3190,7 +3525,7 @@ function WordsPage({ saved, toggleSave, importedVocab, readingVocab, addImported
   ].map(c => (
     <div key={c.cls} className={`mastery-card ${c.cls}`}><div className="mastery-card-head"><span className="mastery-label">{c.label}</span><strong>{c.data.pct}%</strong></div><div className="mastery-bar"><span style={{width:`${c.data.pct}%`,background:c.color}}></span></div><small>{c.data.mastered} / {c.data.total} 已掌握</small></div>
   ))}
-</div></div><div className="memory-progress"><div className="memory-progress-bar">{memCounts.map((c, i) => c > 0 ? <span key={i} className={`mem-level-${i}`} style={{ width: `${(c / words.length) * 100}%` }} title={`${['未记忆','第1次记忆','第2次记忆','第3次记忆','已掌握'][i]}: ${c}`} /> : null)}</div><div className="memory-progress-labels">{memCounts.map((c, i) => <span key={i} className={`mem-label-${i}`}>{['未记忆','第1次','第2次','第3次','已掌握'][i]} <b>{c}</b></span>)}</div></div><div className="library-toolbar"><div className="vocab-tabs">{categoryTabs.map(t => <button key={t.id} className={category === t.id ? 'active' : ''} onClick={() => setCategory(t.id)}>{t.label}<em>{t.count}</em></button>)}</div><div className="mem-tabs">{memTabs.map(t => <button key={t.id} className={memFilter === t.id ? 'active' : ''} onClick={() => setMemFilter(t.id)}>{t.label}<em>{t.count}</em></button>)}</div><label><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索词汇..." /></label></div><div className="words-layout"><div className="word-grid">{visibleWords.slice(0, shown).map((key) => { const data = allData[key]; const memLevel = memoryLevels[key] || 0; return <button className={`word-card mem-card-${memLevel}`} key={key} onClick={() => setSelected(key)}><div className="word-card-top"><span className="type-label">{data.tag}</span>{memLevel > 0 && <span className={`mem-badge mem-${memLevel}`}>{memLevel >= 4 ? '✓' : `L${memLevel}`}</span>}<Volume2 size={16} onClick={(event) => { event.stopPropagation(); speak(data.word) }} /></div><strong>{data.word}</strong><span>{data.phonetic}</span><p>{data.meaning}</p><div className="word-card-bottom"><span>{data.root}</span><em>{data.rootMeaning.split(' · ')[0]}</em></div></button> })}</div>{shown < visibleWords.length && <div className="ll-load-more"><button onClick={() => setShown(n => n + 96)}><Plus size={15} /> 再加载 96 个</button><span>已显示 {Math.min(shown, visibleWords.length)} / {visibleWords.length}</span></div>}</div>{selectedData && createPortal(<><div className="word-popup-overlay" onClick={() => setSelected(null)} /><div className="word-popup" onClick={(event) => event.stopPropagation()}><WordDetail data={selectedData} saved={saved} toggleSave={toggleSave} marks={marks} toggleMark={toggleMark} close={() => setSelected(null)} onDelete={importedVocab[selected] ? handleDelete : undefined} detailLoading={detailLoading} memoryLevels={memoryLevels} markMemorized={markMemorized} inVocab={!!importedVocab[selected]} /></div></>, document.body)}
+</div></div><div className="memory-progress"><div className="memory-progress-bar">{memCounts.map((c, i) => c > 0 ? <span key={i} className={`mem-level-${i}`} style={{ width: `${(c / words.length) * 100}%` }} title={`${['未记忆','第1次记忆','第2次记忆','第3次记忆','已掌握'][i]}: ${c}`} /> : null)}</div><div className="memory-progress-labels">{memCounts.map((c, i) => <span key={i} className={`mem-label-${i}`}>{['未记忆','第1次','第2次','第3次','已掌握'][i]} <b>{c}</b></span>)}</div></div><div className="library-toolbar"><div className="vocab-tabs">{categoryTabs.map(t => <button key={t.id} className={category === t.id ? 'active' : ''} onClick={() => setCategory(t.id)}>{t.label}<em>{t.count}</em></button>)}</div><div className="mem-tabs">{memTabs.map(t => <button key={t.id} className={memFilter === t.id ? 'active' : ''} onClick={() => setMemFilter(t.id)}>{t.label}<em>{t.count}</em></button>)}</div><label><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索词汇..." /></label></div><div className="words-layout"><div className="word-grid">{visibleWords.slice(0, shown).map((key) => { const data = allData[key]; const memLevel = memoryLevels[key] || 0; return <button className={`word-card mem-card-${memLevel}`} key={key} onClick={() => setSelected(key)}><div className="word-card-top"><span className="type-label">{data.tag}</span>{memLevel > 0 && <span className={`mem-badge mem-${memLevel}`}>{memLevel >= 4 ? '✓' : `L${memLevel}`}</span>}<Volume2 size={16} onClick={(event) => { event.stopPropagation(); speak(data.word) }} /></div><strong>{(() => { const parts = wordMorphParts(data.word, data.breakdown); return parts ? parts.map((part, i) => { const a = part.split('（')[0]; const cls = (i === 0 && /-$/.test(a)) ? 'm-pref' : (i === parts.length - 1 && /^-/.test(a)) ? 'm-suf' : 'm-root'; return <span key={i} className={`wc-morph ${cls}`}>{a}</span> }) : data.word })()}</strong><span className="wc-phon">{data.phonetic}</span><p>{data.meaning}</p><div className="word-card-bottom"><span className="wcb-root">{data.root}</span><em>{data.rootMeaning.split(' · ')[0]}</em></div></button> })}</div>{shown < visibleWords.length && <div className="ll-load-more"><button onClick={() => setShown(n => n + 96)}><Plus size={15} /> 再加载 96 个</button><span>已显示 {Math.min(shown, visibleWords.length)} / {visibleWords.length}</span></div>}</div>{selectedData && createPortal(<><div className="word-popup-overlay" onClick={() => setSelected(null)} /><div className="word-popup" onClick={(event) => event.stopPropagation()}><WordDetail data={selectedData} saved={saved} toggleSave={toggleSave} marks={marks} toggleMark={toggleMark} close={() => setSelected(null)} onDelete={importedVocab[selected] ? handleDelete : undefined} detailLoading={detailLoading} memoryLevels={memoryLevels} markMemorized={markMemorized} inVocab={!!importedVocab[selected]} /></div></>, document.body)}
     {showImport && <div className="import-overlay" onClick={() => setShowImport(false)}><div className="import-modal" onClick={(event) => event.stopPropagation()}><div className="import-modal-head"><span className="type-label orange">导入四六级词汇库</span><button className="close-button" onClick={() => setShowImport(false)}><X size={16} /></button></div><label className="file-label" htmlFor="vocab-file-input"><Upload size={14} /> 选择 .txt / .csv 文件</label><input id="vocab-file-input" type="file" accept=".txt,.csv" style={{ display: 'none' }} onChange={readImportFile} /><div className="import-sep">或直接粘贴</div><textarea value={importText} onChange={(event) => setImportText(event.target.value)} rows={8} placeholder={'每行一个词，例如：\nabandon /əˈbændən/ 放弃\n四级 vanish /ˈvænɪʃ/ 消失\n六级 anticipate /ænˈtɪsɪpeɪt/ 预期'} /><div className="import-modal-actions"><span className="import-tip">格式：单词 + 音标（可选，/.../ 包裹）+ 释义；行内写"四级/六级"会按级别标色</span><button className="primary" onClick={doImport}>确认导入</button></div></div></div>}
     {reviewMode && currentReviewData && createPortal(<><div className="review-overlay" onClick={() => setReviewMode(false)} /><div className="review-modal" onClick={(event) => event.stopPropagation()}>
       <div className="review-modal-head">
@@ -3215,6 +3550,48 @@ function WordsPage({ saved, toggleSave, importedVocab, readingVocab, addImported
       </div>
       <p className="review-tip">点击"认识"会提升记忆等级，"不认识"仅标记为已复习</p>
     </div></>, document.body)}
+  </div>
+}
+
+// 词根家族：叠卡 → 点击依次展开
+function MorphSplit({ text }) {
+  const parts = String(text || '').split(' + ').map(s => s.trim()).filter(Boolean)
+  if (parts.length <= 1) return <small>{text}</small>
+  return <small className="morph-inline">
+    {parts.map((part, i) => {
+      const cls = i === 0 ? 'morph-chip' : i === parts.length - 1 ? 'morph-chip morph-suffix' : 'morph-chip morph-root'
+      return <span key={i} className={cls}>{part}</span>
+    })}
+  </small>
+}
+
+function FamilyDeck({ words }) {
+  const [open, setOpen] = useState(false)
+  const toggle = () => setOpen(v => !v)
+  return <div
+    className={`family-deck${open ? ' open' : ''}`}
+    style={{ '--count': Math.max(1, words.length) }}
+    onClick={toggle}
+    onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggle() } }}
+    role="button"
+    tabIndex={0}
+    aria-expanded={open}
+    aria-label={open ? '收起同根词' : `展开 ${words.length} 个同根词`}
+  >
+    <div className="deck-grid">
+      {words.map((wd, index) => (
+        <div className="deck-card" key={wd[0]} style={{ '--i': index }}>
+          <span>0{index + 1}</span>
+          <strong>{wd[0]}</strong>
+          <MorphSplit text={wd[2]} />
+          <em>{wd[1]}</em>
+        </div>
+      ))}
+    </div>
+    <div className="deck-hint">
+      {open ? '收起' : `展开 ${words.length} 个同根词`}
+      <ChevronDown size={14} />
+    </div>
   </div>
 }
 
@@ -3379,7 +3756,7 @@ function RootsPage({ setToast, rootMemoryLevels, markRootMemorized }) {
           <span className="review-settings-label">每次复习</span>
           <div className="review-count-adjuster">
             <button className="count-btn" onClick={() => setRootReviewCount(c => Math.max(1, c - 1))} disabled={rootReviewCount <= 1}>−</button>
-            <span className="count-value"><b>{rootReviewCount}</b> 个</span>
+            <CountWheel value={rootReviewCount} min={1} max={99} onChange={setRootReviewCount} unit="个" />
             <button className="count-btn" onClick={() => setRootReviewCount(c => c + 1)}>+</button>
           </div>
           <span className="review-l1-total">可选 {rootReviewWords.length > 0 ? affixData.filter(d => rootReviewLevels.includes(rootMemoryLevels[d.form] || 0)).length : 0} 个</span>
@@ -3401,7 +3778,7 @@ function RootsPage({ setToast, rootMemoryLevels, markRootMemorized }) {
       ))}
     </div></div>
 
-    <div className="root-stats"><div><span>前缀</span><strong>{counts.prefix}</strong></div><div><span>词根</span><strong>{counts.root}</strong></div><div><span>后缀</span><strong>{counts.suffix}</strong></div><div><span>示例单词</span><strong>{totalWords}+</strong></div></div>{rootOfDay && <div className="root-feature"><div className="root-feature-copy"><span className="type-label orange">ROOT OF THE DAY</span><h2>{rootOfDay.form}</h2><p className="root-definition">{rootOfDay.en} · {rootOfDay.meaning}</p><p>把东西从一个地方带到另一个地方。这个画面藏在一整组高频词里。</p><button className="primary" onClick={() => setToast('词根卡片已加入今天的学习计划')}>学习这一组 <ArrowUpRight size={16} /></button></div><div className="root-family"><div className="family-line"></div>{rootOfDay.words.map((wd, index) => <div className="family-word" key={wd[0]}><span>0{index + 1}</span><strong>{wd[0]}</strong><small>{wd[2]}</small><em>{wd[1]}</em></div>)}</div></div>}<div className="roots-library"><div className="roots-toolbar"><div className="root-tabs">{tabs.map(t => <button key={t.id} className={filter === t.id ? 'active' : ''} onClick={() => setFilter(t.id)}>{t.label}</button>)}</div><label className="root-search"><Search size={16} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索词根 / 词缀 / 单词..." /></label></div><div className="affix-grid">{filtered.map((d) => { const typeInfo = AFFIX_TYPES[d.type]; const isOpen = expanded.has(d.form); const showWords = isOpen ? d.words : d.words.slice(0, 2); const memLevel = rootMemoryLevels[d.form] || 0; return <div key={d.form} className={`affix-card ${d.type}${isOpen ? ' open' : ''}`}><button className="affix-card-head" onClick={() => setSelectedRoot(d)}><span className={`affix-badge ${d.type}`}>{typeInfo.label}</span><strong className="affix-form">{d.form}</strong>{memLevel > 0 && <span className={`mem-badge mem-${memLevel}`} style={{marginLeft:'auto'}}>{memLevel >= 4 ? '✓' : `L${memLevel}`}</span>}<span className="affix-en">{d.en}</span><span className="affix-cn">{d.meaning}</span><ChevronDown size={16} className="affix-chevron" /></button><div className="affix-words">{showWords.map((wd) => <span key={wd[0]} className="affix-word"><b>{wd[0]}</b><i>{wd[1]}</i>{isOpen && <em>{wd[2]}</em>}</span>)}{!isOpen && d.words.length > 2 && <button className="affix-more" onClick={() => toggle(d.form)}>+{d.words.length - 2} 更多</button>}</div></div>})}{filtered.length === 0 && <div className="affix-empty">没有找到匹配的词根词缀，换个关键词试试。</div>}</div></div>{selectedRoot && createPortal(<><div className="word-popup-overlay" onClick={() => setSelectedRoot(null)} /><div className="word-popup root-popup" onClick={(event) => event.stopPropagation()}><div className="root-popup-head"><span className={`affix-badge ${selectedRoot.type}`}>{AFFIX_TYPES[selectedRoot.type].label}</span>{(rootMemoryLevels[selectedRoot.form] || 0) > 0 && <span className={`mem-badge mem-${rootMemoryLevels[selectedRoot.form] || 0}`}>{(rootMemoryLevels[selectedRoot.form] || 0) >= 4 ? '✓ 已掌握' : `L${rootMemoryLevels[selectedRoot.form] || 0}`}</span>}<button className="close-button" onClick={() => setSelectedRoot(null)}><X size={16} /></button></div><div className="root-feature"><div className="root-feature-copy"><span className="type-label orange">{AFFIX_TYPES[selectedRoot.type].label === '前缀' ? 'PREFIX' : AFFIX_TYPES[selectedRoot.type].label === '后缀' ? 'SUFFIX' : 'ROOT'}</span><h2>{selectedRoot.form}</h2><p className="root-definition">{selectedRoot.en} · {selectedRoot.meaning}</p><p>{buildRootDesc(selectedRoot)}</p><button className="primary" onClick={() => { markRootMemorized(selectedRoot.form); }}><Brain size={15} /> 标记记忆（当前 L{rootMemoryLevels[selectedRoot.form] || 0}）</button></div><div className="root-family"><div className="family-line"></div>{selectedRoot.words.map((wd, index) => <div className="family-word" key={wd[0]}><span>0{index + 1}</span><strong>{wd[0]}</strong><small>{wd[2]}</small><em>{wd[1]}</em></div>)}</div></div></div></>, document.body)}
+    <div className="root-stats"><div><span>前缀</span><strong>{counts.prefix}</strong></div><div><span>词根</span><strong>{counts.root}</strong></div><div><span>后缀</span><strong>{counts.suffix}</strong></div><div><span>示例单词</span><strong>{totalWords}+</strong></div></div>{rootOfDay && <div className="root-feature"><div className="root-feature-copy"><span className="type-label orange">ROOT OF THE DAY</span><h2>{rootOfDay.form}</h2><p className="root-definition">{rootOfDay.en} · {rootOfDay.meaning}</p><p>把东西从一个地方带到另一个地方。这个画面藏在一整组高频词里。</p><button className="primary" onClick={() => setToast('词根卡片已加入今天的学习计划')}>学习这一组 <ArrowUpRight size={16} /></button></div><FamilyDeck words={rootOfDay.words} /></div>}<div className="roots-library"><div className="roots-toolbar"><div className="root-tabs">{tabs.map(t => <button key={t.id} className={filter === t.id ? 'active' : ''} onClick={() => setFilter(t.id)}>{t.label}</button>)}</div><label className="root-search"><Search size={16} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索词根 / 词缀 / 单词..." /></label></div><div className="affix-grid">{filtered.map((d) => { const typeInfo = AFFIX_TYPES[d.type]; const isOpen = expanded.has(d.form); const showWords = isOpen ? d.words : d.words.slice(0, 2); const memLevel = rootMemoryLevels[d.form] || 0; return <div key={d.form} className={`affix-card ${d.type}${isOpen ? ' open' : ''}`}><button className="affix-card-head" onClick={() => setSelectedRoot(d)}><span className={`affix-badge ${d.type}`}>{typeInfo.label}</span><strong className="affix-form">{d.form}</strong>{memLevel > 0 && <span className={`mem-badge mem-${memLevel}`} style={{marginLeft:'auto'}}>{memLevel >= 4 ? '✓' : `L${memLevel}`}</span>}<span className="affix-en">{d.en}</span><span className="affix-cn">{d.meaning}</span><ChevronDown size={16} className="affix-chevron" /></button><div className="affix-words">{showWords.map((wd) => <span key={wd[0]} className="affix-word"><b>{wd[0]}</b><i>{wd[1]}</i>{isOpen && <em>{wd[2]}</em>}</span>)}{!isOpen && d.words.length > 2 && <button className="affix-more" onClick={() => toggle(d.form)}>+{d.words.length - 2} 更多</button>}</div></div>})}{filtered.length === 0 && <div className="affix-empty">没有找到匹配的词根词缀，换个关键词试试。</div>}</div></div>{selectedRoot && createPortal(<><div className="word-popup-overlay" onClick={() => setSelectedRoot(null)} /><div className="word-popup root-popup" onClick={(event) => event.stopPropagation()}><div className="root-popup-head"><span className={`affix-badge ${selectedRoot.type}`}>{AFFIX_TYPES[selectedRoot.type].label}</span>{(rootMemoryLevels[selectedRoot.form] || 0) > 0 && <span className={`mem-badge mem-${rootMemoryLevels[selectedRoot.form] || 0}`}>{(rootMemoryLevels[selectedRoot.form] || 0) >= 4 ? '✓ 已掌握' : `L${rootMemoryLevels[selectedRoot.form] || 0}`}</span>}<button className="close-button" onClick={() => setSelectedRoot(null)}><X size={16} /></button></div><div className="root-feature"><div className="root-feature-copy"><span className="type-label orange">{AFFIX_TYPES[selectedRoot.type].label === '前缀' ? 'PREFIX' : AFFIX_TYPES[selectedRoot.type].label === '后缀' ? 'SUFFIX' : 'ROOT'}</span><h2>{selectedRoot.form}</h2><p className="root-definition">{selectedRoot.en} · {selectedRoot.meaning}</p><p>{buildRootDesc(selectedRoot)}</p><button className="primary" onClick={() => { markRootMemorized(selectedRoot.form); }}><Brain size={15} /> 标记记忆（当前 L{rootMemoryLevels[selectedRoot.form] || 0}）</button></div><FamilyDeck words={selectedRoot.words} /></div></div></>, document.body)}
 
     {/* 词根复习弹窗 */}
     {rootReviewMode && currentReviewRoot && createPortal(<><div className="review-overlay" onClick={() => setRootReviewMode(false)} /><div className="review-modal root-review-modal" onClick={(event) => event.stopPropagation()}>
